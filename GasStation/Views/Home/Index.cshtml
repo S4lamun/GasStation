@@ -1,33 +1,401 @@
-﻿@{
-    ViewBag.Title = "Home Page";
+﻿@model GasStation.DTO.CreateOrderDTO
+
+
+@{
+    ViewBag.Title = "System Kasowy";
+    var items = Enumerable.Range(1, 8).Select(i => new
+    {
+        Name = $"Dystrubutor {i}",
+        Value = (decimal)i * 5.50m + 10m
+    }).ToList();
+
 }
+<link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 
-<main>
-    <section class="row" aria-labelledby="aspnetTitle">
-        <h1 id="title">ASP.NET</h1>
-        <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-        <p><a href="https://asp.net" class="btn btn-primary btn-md">Learn more &raquo;</a></p>
-    </section>
+<!-- Dodaj JS Select2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
-    <div class="row">
-        <section class="col-md-4" aria-labelledby="gettingStartedTitle">
-            <h2 id="gettingStartedTitle">Getting started</h2>
-            <p>
-                ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-                enables a clean separation of concerns and gives you full control over markup
-                for enjoyable, agile development.
-            </p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
+<div class="cashier-interface">
+    <header class="top-bar">
+        <div class="info-left">
+            <span>KASA: 1</span>
+
+            <span>KASJER: @(ViewBag.CurrentCashierFullName ?? "Tutaj powinno sie zaladowac imie z ViewBag.CurrentCashierFullName")</span>
+
+        </div>
+        <div class="info-center time-display" id="timeDisplay">
+
+            @{
+
+                var currentTime = DateTime.Now;
+            }
+            @currentTime.ToString("HH:mm") <span class="date-small">@currentTime.ToString("dd/MM/yyyy")</span>
+        </div>
+        <div class="info-right">
+            @Html.ActionLink("ZARZĄDZANIE", "PanelAdmina", "Admin", null, new { @class = "btn btn-management" })
+        </div>
+    </header>
+
+    <main class="main-content">
+
+        <section class="left-panel">
+            <div class="css-grid-container">
+
+                @foreach (var item in items)
+                {
+
+                    <button type="button" class="grid-item-button"
+                            data-value="@item.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+
+
+                        <div class="button-content">
+                            @item.Name
+                            <div class="item-value">
+                                @item.Value.ToString("C", new System.Globalization.CultureInfo("pl-PL"))
+                            </div>
+                        </div>
+                    </button>
+                }
+            </div>
+
         </section>
-        <section class="col-md-4" aria-labelledby="librariesTitle">
-            <h2 id="librariesTitle">Get more libraries</h2>
-            <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
+
+        <section class="middle-panel">
+            <div class="display-input-area">
+                <div class="item-details-preview">
+                    <label for="productSelect">Wybierz produkt:</label>
+                    <select id="productSelect" class="product-select">
+                        <option value="">-- Wyszukaj po kodzie kreskowym --</option>
+                        <!-- Produkty będą dodawane tutaj -->
+                    </select>
+                    <div id="productDetails"></div>
+                    <button id="btnAddToOrder" class="action-btn">Dodaj do zamówienia</button>
+                    <button id="btnRemoveProduct" class="action-btn">Usuń produkt</button>
+                </div>
+            </div>
         </section>
-        <section class="col-md-4" aria-labelledby="hostingTitle">
-            <h2 id="hostingTitle">Web Hosting</h2>
-            <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
+
+        <section class="right-panel">
+            <div class="receipt-header">
+                <span>Lp.</span>
+                <span>Nazwa towaru</span>
+                <span>Ilość</span>
+                <span>Cena</span>
+                <span>Wartość</span>
+                <span>&nbsp;</span>
+            </div>
+
+            <div id="receiptItems" class="receipt-items-container">
+                <!-- Produkty będą tutaj dynamicznie dodawane -->
+            </div>
+
+            <!-- Formularz do dodawania produktów -->
+            <div class="add-product-form">
+                <input type="text" id="productName" placeholder="Nazwa towaru" />
+                <input type="number" id="productQuantity" placeholder="Ilość" />
+                <input type="number" step="0.01" id="productPrice" placeholder="Cena" />
+                <button id="addProductBtn">Dodaj</button>
+            </div>
+
+            <div class="receipt-summary">
+                <div>Do zapłaty (PLN): <span id="totalAmount" class="total-amount-value">0.00</span></div>
+            </div>
+
+            <div class="payment-options">
+                <button class="payment-btn large-btn" id="btnCash">GOTÓWKA</button>
+                <button class="payment-btn large-btn" id="btnCard">KARTA</button>
+                <button class="payment-btn" id="btnInvoice">FAKTURA</button>
+                <button class="action-btn" id="btnFueling">DYSTRYBUTORY</button>
+                <button class="action-btn" id="btnVoidItem">WYCOFAJ POZ.</button>
+            </div>
         </section>
-    </div>
-</main>
+    </main>
+
+    <footer class="bottom-bar">
+        <span>F1 POMOC</span>
+        <span>F2 PRODUKTY</span>
+        <span>F3 PALIWA</span>
+        <span>F4 KLIENCI</span>
+        <span>...</span>
+        <span id="btnLogout" class="logout-button">WYLOGUJ</span>
+    </footer>
+</div>
+
+
+@section Scripts {
+    {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Pobieramy element, który wyświetla sumę
+            const totalAmountSpan = document.getElementById('totalAmount');
+
+            // Funkcja do parsowania wartości z tekstu
+            function parseAmount(str) {
+                return parseFloat(str.replace(',', '.'));
+            }
+
+            // Funkcja do formatowania wartości w polskim formacie waluty
+            function formatPLN(amount) {
+                return amount.toFixed(2).replace('.', ',');
+            }
+
+            // Pobieramy początkową wartość z elementu, na którym jest wyświetlana suma
+            let currentTotal = parseAmount(totalAmountSpan.textContent.trim());
+
+            // Jeśli odczytana wartość jest nieprawidłowa, ustawiamy ją na 0
+            if (isNaN(currentTotal)) currentTotal = 0;
+
+            // Znajdź wszystkie przyciski z klasą 'grid-item-button'
+            const buttons = document.querySelectorAll('.grid-item-button');
+
+            buttons.forEach(button => {
+                // Dodajemy nasłuchiwanie na kliknięcie przycisku
+                button.addEventListener('click', function () {
+                    // Odczytujemy wartość przycisku
+                    const valueStr = this.dataset.value;
+                    const value = parseFloat(valueStr);
+
+                    // Jeśli wartość jest poprawna
+                    if (!isNaN(value)) {
+                        // Sprawdzamy, czy przycisk został już kliknięty (ma klasę 'clicked')
+                        const isClicked = this.classList.contains('clicked');
+
+                        if (isClicked) {
+                            // Jeśli przycisk był wcześniej kliknięty, odejmujemy wartość
+                            currentTotal -= value;
+
+                            // Usuwamy klasę 'clicked', bo przycisk zostanie kliknięty ponownie
+                            this.classList.remove('clicked');
+                        } else {
+                            // Jeśli przycisk nie był wcześniej kliknięty, dodajemy wartość
+                            currentTotal += value;
+
+                            // Dodajemy klasę 'clicked', bo przycisk został kliknięty
+                            this.classList.add('clicked');
+                        }
+
+                        // Aktualizujemy wyświetlaną wartość na stronie
+                        totalAmountSpan.textContent = formatPLN(currentTotal);
+                    } else {
+                        console.error("Nieprawidłowa wartość:", valueStr);
+                    }
+                });
+            });
+        });
+
+
+
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Lista produktów (w przyszłości może pochodzić z bazy danych)
+            const products = [
+                { id: 1, name: 'Myjnia Program 1', barcode: '123456789', price: 12.00 },
+                { id: 2, name: 'HOT-DOG Amerykański', barcode: '987654321', price: 7.50 },
+                { id: 3, name: 'Kawa Espresso', barcode: '456123789', price: 5.00 },
+                { id: 4, name: 'Frytki Ziemniaczane', barcode: '321654987', price: 3.50 }
+            ];
+
+            const productSelect = document.getElementById('productSelect');
+            const btnAddToOrder = document.getElementById('btnAddToOrder');
+            const btnRemoveProduct = document.getElementById('btnRemoveProduct');
+            const productDetails = document.getElementById('productDetails');
+            const totalAmount = document.getElementById('totalAmount');
+
+            let selectedProduct = null; // Zmienna przechowująca wybrany produkt
+            let currentTotal = 0; // Zmienna przechowująca całkowitą sumę zamówienia
+
+            // Funkcja do dodawania produktów do rozwijanej listy
+            function populateProductSelect(products) {
+                productSelect.innerHTML = '<option value="">-- Wyszukaj po kodzie kreskowym --</option>'; // Resetowanie listy
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.barcode;
+                    option.textContent = `${product.name} (Kod: ${product.barcode})`;
+                    productSelect.appendChild(option);
+                });
+            }
+
+            // Inicjalizacja rozwijanej listy z produktami
+            populateProductSelect(products);
+
+            // Funkcja do wyświetlania szczegółów produktu
+            function displayProductDetails(product) {
+                productDetails.innerHTML = `
+            <h3>Produkt: ${product.name}</h3>
+            <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
+            <p><strong>Cena:</strong> ${product.price} PLN</p>
+        `;
+            }
+
+            // Funkcja do czyszczenia szczegółów produktu
+            function clearProductDetails() {
+                productDetails.innerHTML = '';
+            }
+
+            // Funkcja do aktualizacji sumy zamówienia
+            function updateTotalAmount() {
+                totalAmount.textContent = currentTotal.toFixed(2); // Aktualizuje tekst w elemencie totalAmount
+            }
+
+            // Obsługa zmiany w wyszukiwarce
+            productSelect.addEventListener('change', function () {
+                const selectedBarcode = productSelect.value;
+                if (selectedBarcode) {
+                    selectedProduct = products.find(product => product.barcode === selectedBarcode);
+                    displayProductDetails(selectedProduct);
+                } else {
+                    clearProductDetails();
+                    selectedProduct = null; // Resetowanie wybranego produktu
+                }
+            });
+
+            // Obsługa dodawania produktu do zamówienia
+            btnAddToOrder.addEventListener('click', function () {
+                if (selectedProduct) {
+                    // Wyświetlamy produkt w sekcji zamówienia
+                    addProductToOrder(selectedProduct);
+                } else {
+                    alert("Wybierz produkt, który chcesz dodać do zamówienia.");
+                }
+            });
+
+            // Funkcja do dodawania produktu do zamówienia
+            function addProductToOrder(product) {
+                const orderList = document.getElementById('receiptItems');
+                const newItem = document.createElement('div');
+                newItem.classList.add('receipt-item');
+                newItem.dataset.barcode = product.barcode; // Dodajemy dane produktu do elementu
+
+                newItem.innerHTML = `
+            <span>1</span>
+            <span>${product.name}</span>
+            <span>1</span>
+            <span>${product.price}</span>
+            <span>${product.price}</span>
+            <button class="btn-delete-item">X</button>
+        `;
+
+                // Aktualizujemy sumę zamówienia
+                currentTotal += product.price;
+                updateTotalAmount();
+
+                // Obsługuje usuwanie produktu z zamówienia
+                const deleteBtn = newItem.querySelector('.btn-delete-item');
+                deleteBtn.addEventListener('click', function () {
+                    // Zmniejszamy sumę zamówienia
+                    currentTotal -= product.price;
+                    updateTotalAmount();
+                    newItem.remove();
+                });
+
+                orderList.appendChild(newItem);
+            }
+
+            // Obsługa usuwania wybranego produktu
+            btnRemoveProduct.addEventListener('click', function () {
+                if (selectedProduct) {
+                    // Usuwamy produkt z zamówienia, jeśli jest
+                    const items = document.querySelectorAll('.receipt-item');
+                    items.forEach(item => {
+                        if (item.dataset.barcode === selectedProduct.barcode) {
+                            const itemPrice = parseFloat(item.querySelector('span:nth-child(5)').textContent);
+                            // Zmniejszamy sumę zamówienia
+                            currentTotal -= itemPrice;
+                            updateTotalAmount();
+                            item.remove();
+                        }
+                    });
+                } else {
+                    alert("Wybierz produkt, który chcesz usunąć z zamówienia.");
+                }
+            });
+        });
+
+
+
+
+
+
+        $(document).ready(function () {
+            $('#productSelect').select2({
+                placeholder: '-- Wyszukaj po kodzie kreskowym --',
+                allowClear: true
+            });
+        });
+
+
+    </script>
+    }}
+
+
+<style>
+    /* Style CSS - możesz je umieścić w pliku .css lub w sekcji <style> */
+    .css-grid-container {
+        display: grid;
+        /* Definiuje kolumny. repeat(3, 1fr) tworzy 3 kolumny o równej szerokości */
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+    }
+
+    .grid-item {
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        height: 250px;
+        width: 350px;
+        padding: 15px;
+        text-align: center;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: red;
+    }
+
+    .grid-item-button {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+        height: 250px;
+        padding: 15px;
+        margin: 0;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: inherit;
+        color: red;
+        transition: background-color 0.3s ease;
+        box-sizing: border-box;
+    }
+
+        .grid-item-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .grid-item-button.clicked {
+            background-color: #8bc34a; /* Zmieniony kolor po kliknięciu (zielony) */
+        }
+
+    .button-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .item-value {
+        font-size: 0.9em;
+        color: #555;
+        margin-top: 5px;
+    }
+</style>
