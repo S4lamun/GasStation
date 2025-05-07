@@ -1,14 +1,18 @@
 ﻿@model GasStation.DTO.CreateOrderDTO
-
+@using GasStation.DTO
 
 @{
     ViewBag.Title = "System Kasowy";
-    var items = Enumerable.Range(1, 8).Select(i => new
-    {
-        Name = $"Dystrubutor {i}",
-        Value = (decimal)i * 5.50m + 10m
-    }).ToList();
 
+    var items = Enumerable.Range(1, 8).Select(i => new RefuelingEntryDTO
+    {
+        RefuelingEntryId = i,
+        Amount = 10.0m + i * 2, // np. ilość zatankowanego paliwa
+        OrderId = 100 + i,      // przykładowy ID zamówienia
+        FuelId = i,
+        FuelName = $"{i}", // zamiast Name
+        PriceAtSale = 5.50m + i        // przykładowa cena sprzedaży
+    }).ToList();
 }
 <link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
@@ -46,15 +50,28 @@
                 {
 
                     <button type="button" class="grid-item-button"
-                            data-value="@item.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                            data-id="@item.FuelId" 
+                            data-amount="@item.Amount"
+                            data-price="@item.PriceAtSale"
+                            data-value="@(item.Amount * item.PriceAtSale)">
 
+                        <div class="distributor-name">@item.FuelName</div>
 
-                        <div class="button-content">
-                            @item.Name
-                            <div class="item-value">
-                                @item.Value.ToString("C", new System.Globalization.CultureInfo("pl-PL"))
-                            </div>
+                        <div class="item-calculated-value">
+                            @((item.Amount * item.PriceAtSale).ToString("N2", new System.Globalization.CultureInfo("pl-PL"))) zł
                         </div>
+                        <div class="bottom-details">
+                            <span class="amount-display">Ilość: @item.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) L</span>
+                            <span class="price-display">Cena: @item.PriceAtSale.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) zł/L</span>
+                        </div>
+
+                        @*<div class="button-content">
+                            <div class="distributor-details">
+                                <span class="amount">Ilość: @item.Amount L</span>
+                                <span class="value">Wartość: @(item.Amount * item.PriceAtSale) zł</span>
+                                <span class="price">Cena: @item.PriceAtSale zł/L</span>
+                            </div>
+                        </div>*@
                     </button>
                 }
             </div>
@@ -224,10 +241,10 @@
             // Funkcja do wyświetlania szczegółów produktu
             function displayProductDetails(product) {
                 productDetails.innerHTML = `
-            <h3>Produkt: ${product.name}</h3>
-            <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
-            <p><strong>Cena:</strong> ${product.price} PLN</p>
-        `;
+                <h3>Produkt: ${product.name}</h3>
+                <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
+                <p><strong>Cena:</strong> ${product.price} PLN</p>
+            `;
             }
 
             // Funkcja do czyszczenia szczegółów produktu
@@ -270,13 +287,13 @@
                 newItem.dataset.barcode = product.barcode; // Dodajemy dane produktu do elementu
 
                 newItem.innerHTML = `
-            <span>1</span>
-            <span>${product.name}</span>
-            <span>1</span>
-            <span>${product.price}</span>
-            <span>${product.price}</span>
-            <button class="btn-delete-item">X</button>
-        `;
+                <span>1</span>
+                <span>${product.name}</span>
+                <span>1</span>
+                <span>${product.price}</span>
+                <span>${product.price}</span>
+                <button class="btn-delete-item">X</button>
+            `;
 
                 // Aktualizujemy sumę zamówienia
                 currentTotal += product.price;
@@ -359,7 +376,7 @@
     .grid-item-button {
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         text-align: center;
         width: 100%;
@@ -376,6 +393,31 @@
         transition: background-color 0.3s ease;
         box-sizing: border-box;
     }
+        .grid-item-button[data-id="1"] {
+            background-color: rgba(0, 0, 255, 0.8);
+            color: white; 
+        }
+            .grid-item-button[data-id="1"]:hover {
+                background-color: rgb(0, 0, 255); 
+                
+            }
+        .grid-item-button[data-id="2"] {
+            background-color: rgba(0, 128, 0, 0.8);
+            color: white; /* Zmień kolor tekstu na biały */
+        }
+            .grid-item-button[data-id="2"]:hover {
+                background-color: rgb(0, 128, 0); 
+                
+            }
+
+        .grid-item-button[data-id="3"] {
+            background-color: rgba(0, 0,0, 0.8);
+            color: white; /* Zmień kolor tekstu na biały */
+        }
+
+            .grid-item-button[data-id="3"]:hover {
+                background-color: rgb(100, 100, 100);
+            }
 
         .grid-item-button:hover {
             background-color: #e0e0e0;
@@ -392,7 +434,52 @@
         justify-content: center;
         width: 100%;
     }
+    .distributor-name {
+        font-size: 1.2em;
+        font-weight: bold;
+                color: white;
+        align-content: flex-end;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .distributor-details {
+        display: flex;
+        flex-direction: column;
+        font-size: 14px;
+    }
+    .bottom-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        font-size: 0.9em;
+        color: #555;
+    }
+        .bottom-details .amount-display, .bottom-details .price-display {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            flex-basis: 50%;
+            padding-right: 5px;
+            box-sizing: border-box;
+            color:white;
+        }
 
+        .bottom-details .amount-display {
+            text-align: left;
+            
+        }
+        .bottom-details .price-display {
+            text-align: right;
+           
+        }
+        .distributor-details span {
+            margin: 2px 0;
+        }
+    .item-calculated-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color:red;
+        margin: auto 0;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    }
     .item-value {
         font-size: 0.9em;
         color: #555;
