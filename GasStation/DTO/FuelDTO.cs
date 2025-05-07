@@ -9,15 +9,19 @@ namespace GasStation.DTO
     // DTO for displaying, creating, or updating Fuel
     public class FuelDTO
     {
-        // ID is included for display/update, not needed for creation input normally
-        public int FuelId { get; set; }
+        public int FuelId { get; set; } // ID będzie generowane
+        public string FuelName { get; set; }
+        public string DistributorNumber { get; set; }
+    }
 
-        [Required(ErrorMessage = "Fuel name is required.")]
-        [StringLength(50, ErrorMessage = "Fuel name cannot exceed 50 characters.")]
+    public class CreateFuelDTO
+    {
+        [Required(ErrorMessage = "Nazwa paliwa jest wymagana.")]
+        [StringLength(50, ErrorMessage = "Nazwa paliwa nie może przekraczać 50 znaków.")]
         public string FuelName { get; set; }
 
-        [Required(ErrorMessage = "Distributor number is required.")]
-        [StringLength(50, ErrorMessage = "Distributor number cannot exceed 50 characters.")]
+        [Required(ErrorMessage = "Numer dystrybutora jest wymagany.")]
+        [StringLength(50, ErrorMessage = "Numer dystrybutora nie może przekraczać 50 znaków.")]
         public string DistributorNumber { get; set; }
     }
 }

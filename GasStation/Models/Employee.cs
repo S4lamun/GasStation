@@ -1,16 +1,25 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿// Employee.cs
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
+using System.Text.RegularExpressions; // Dodaj to using
 
 namespace GasStation.Models
 {
     [Table("Employees")] // Tabela dla Employee
-    public class Employee : Person
+    // Usunięto dziedziczenie po Person
+    public class Employee
     {
-        // Klucz główny tabeli Employees, NAZWANY TAK SAMO JAK KLUCZ PERSON (Pesel)
-        // i będzie jednocześnie kluczem obcym do tabeli People.
-        [Key]
-        public string Pesel { get; set; } 
+        [Key] // Pesel staje się kluczem głównym dla Employee
+        public string Pesel { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string Name { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string Surname { get; set; }
 
         [Required]
         [StringLength(50)]
@@ -20,13 +29,19 @@ namespace GasStation.Models
         [StringLength(50)]
         public string Password { get; set; }
 
-        //Navigation properties
+        // Navigation properties
         public virtual ICollection<FuelPriceHistory> HistoriaCenPaliwZmiany { get; set; }
         public virtual ICollection<Order> Orders { get; set; }
 
+        // Metoda przeniesiona z Person
+        public bool ValidatePesel()
+        {
+            return Regex.IsMatch(Pesel, @"^\d{11}$");
+        }
+
         public bool ValidatePassword()
         {
-            return (System.Text.RegularExpressions.Regex.IsMatch(Password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"));
+            return (Regex.IsMatch(Password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"));
         }
     }
 }

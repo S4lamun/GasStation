@@ -136,28 +136,15 @@
     <Compile Include="DTO\FuelPriceHistoryDTO.cs" />
     <Compile Include="DTO\OrderDTO.cs" />
     <Compile Include="DTO\OrderSpecificationDTO.cs" />
-    <Compile Include="DTO\PersonDTO.cs" />
     <Compile Include="DTO\ProductDTO.cs" />
     <Compile Include="DTO\RefuelingEntryDTO.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\Helper.cs" />
-    <Compile Include="Migrations\202505062016191_InitialCreate.cs" />
-    <Compile Include="Migrations\202505062016191_InitialCreate.Designer.cs">
-      <DependentUpon>202505062016191_InitialCreate.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202505062022357_RemoveDuplicatePeselFk.cs" />
-    <Compile Include="Migrations\202505062022357_RemoveDuplicatePeselFk.Designer.cs">
-      <DependentUpon>202505062022357_RemoveDuplicatePeselFk.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202505062027369_FixForeignKeyPlacement.cs" />
-    <Compile Include="Migrations\202505062027369_FixForeignKeyPlacement.Designer.cs">
-      <DependentUpon>202505062027369_FixForeignKeyPlacement.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202505070802078_Changes.cs" />
-    <Compile Include="Migrations\202505070802078_Changes.Designer.cs">
-      <DependentUpon>202505070802078_Changes.cs</DependentUpon>
+    <Compile Include="Migrations\202505071731302_InitialCreate_Schema.cs" />
+    <Compile Include="Migrations\202505071731302_InitialCreate_Schema.Designer.cs">
+      <DependentUpon>202505071731302_InitialCreate_Schema.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Customer.cs" />
@@ -166,7 +153,6 @@
     <Compile Include="Models\FuelPriceHistory.cs" />
     <Compile Include="Models\Order.cs" />
     <Compile Include="Models\OrderSpecification.cs" />
-    <Compile Include="Models\Person.cs" />
     <Compile Include="Models\Product.cs" />
     <Compile Include="Models\RefuelingEntry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -176,7 +162,6 @@
     <Compile Include="Services\FuelPriceHistoryService.cs" />
     <Compile Include="Services\FuelService.cs" />
     <Compile Include="Services\OrderService.cs" />
-    <Compile Include="Services\PersonService.cs" />
     <Compile Include="Services\ProductService.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -264,17 +249,8 @@
     <Content Include="Scripts\jquery-3.7.0.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202505062016191_InitialCreate.resx">
-      <DependentUpon>202505062016191_InitialCreate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202505062022357_RemoveDuplicatePeselFk.resx">
-      <DependentUpon>202505062022357_RemoveDuplicatePeselFk.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202505062027369_FixForeignKeyPlacement.resx">
-      <DependentUpon>202505062027369_FixForeignKeyPlacement.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202505070802078_Changes.resx">
-      <DependentUpon>202505070802078_Changes.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202505071731302_InitialCreate_Schema.resx">
+      <DependentUpon>202505071731302_InitialCreate_Schema.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

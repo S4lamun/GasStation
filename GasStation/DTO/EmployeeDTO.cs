@@ -1,4 +1,5 @@
-﻿using System;
+﻿// EmployeeDTO.cs
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -6,15 +7,23 @@ using System.Web;
 
 namespace GasStation.DTO
 {
-    public class EmployeeDTO : PersonDTO
+    // Usunięto dziedziczenie po PersonDTO
+    public class EmployeeDTO
     {
+        // Dodano pola z PersonDTO
+        public string Pesel { get; set; } // DTO zazwyczaj nie wymaga [Key]
+
+        public string Name { get; set; }
+
+        public string Surname { get; set; }
+
+        // Pola specyficzne dla Employee
         public string Login { get; set; }
 
         // Password is typically NOT included in display DTOs for security
-       
     }
 
-    // DTO for creating a new Employee
+    // Ta klasa CreateEmployeeDTO pozostaje bez zmian, ponieważ już miała wszystkie potrzebne pola
     public class CreateEmployeeDTO
     {
         [Required(ErrorMessage = "Pesel is required.")]
@@ -40,7 +49,7 @@ namespace GasStation.DTO
         public string Password { get; set; }
     }
 
-    // DTO for Employee Login input
+    // Ta klasa EmployeeLoginDTO pozostaje bez zmian
     public class EmployeeLoginDTO
     {
         [Required(ErrorMessage = "Login is required.")]

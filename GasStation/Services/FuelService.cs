@@ -64,6 +64,7 @@ namespace GasStation.Services
             };
         }
 
+
         public FuelPriceHistory GetCurrentFuelPrice(int fuelId, DateTime atTime)
         {
             var currentPrice = _context.FuelPriceHistories

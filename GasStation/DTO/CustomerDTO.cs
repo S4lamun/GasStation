@@ -1,4 +1,5 @@
-﻿using System;
+﻿// CustomerDTO.cs
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -6,13 +7,23 @@ using System.Web;
 
 namespace GasStation.DTO
 {
-	public class CustomerDTO:PersonDTO
-	{
+    // Usunięto dziedziczenie po PersonDTO
+    public class CustomerDTO
+    {
+        // Dodano pola z PersonDTO
+        public string Pesel { get; set; } // DTO zazwyczaj nie wymaga [Key]
+
+        public string Name { get; set; }
+
+        public string Surname { get; set; }
+
+        // Pola specyficzne dla Customer
         public string CardNumber { get; set; }
 
         public string Company { get; set; }
     }
 
+    // Ta klasa CreateCustomerDTO pozostaje bez zmian, ponieważ już miała wszystkie potrzebne pola
     public class CreateCustomerDTO
     {
         [Required(ErrorMessage = "Pesel is required.")]

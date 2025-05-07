@@ -1,5 +1,4 @@
-﻿// GasStationDbContext.cs
-using System.Data.Entity; // Upewnij się, że używasz System.Data.Entity
+﻿using System.Data.Entity;
 using GasStation.Models;
 
 namespace GasStation.Data
@@ -10,7 +9,7 @@ namespace GasStation.Data
         {
         }
 
-        public DbSet<Person> People { get; set; }
+        // Usunięto DbSet<Person>
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Fuel> Fuels { get; set; }
@@ -22,10 +21,25 @@ namespace GasStation.Data
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            // Konfiguracja mapowania TPT
-            modelBuilder.Entity<Person>().ToTable("People");
+            // Usunięto konfigurację mapowania dla Person
+            // modelBuilder.Entity<Person>().ToTable("People");
+
+            // Konfiguracje dla Customers i Employees pozostają,
+            // ponieważ są teraz niezależnymi tabelami z własnymi kluczami.
             modelBuilder.Entity<Customer>().ToTable("Customers");
             modelBuilder.Entity<Employee>().ToTable("Employees");
+
+            // Usunięto poprzednie konfiguracje HasRequired/WithOptional, które powodują problemy
+            // (te były związane z mapowaniem TPT i nie są już potrzebne)
+            // modelBuilder.Entity<Employee>()
+            //     .HasRequired(e => e.Person)
+            //     .WithOptional()
+            //     .Map(m => m.MapKey("Pesel"));
+
+            // modelBuilder.Entity<Customer>()
+            //     .HasRequired(c => c.Person)
+            //     .WithOptional()
+            //     .Map(m => m.MapKey("Pesel"));
 
             // Te linie konfiguracyjne dla opcjonalnych kluczy obcych są poprawne i pozostają
             modelBuilder.Entity<OrderSpecification>()
@@ -37,9 +51,6 @@ namespace GasStation.Data
                 .HasOptional(os => os.Order)
                 .WithMany(o => o.OrderSpecifications)
                 .HasForeignKey(os => os.OrderId);
-
-            // Pamiętaj, aby usunąć base.OnModelCreating(modelBuilder); w EF6, jeśli implementujesz OnModelCreating
-            // aby uniknąć podwójnej konfiguracji.
         }
     }
 }
