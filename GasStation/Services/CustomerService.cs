@@ -21,11 +21,8 @@ namespace GasStation.Services
             var customers = _context.Customers.ToList();
             return customers.Select(c => new CustomerDTO
             {
-                Pesel = c.Pesel,
-                Name = c.Name,
-                Surname = c.Surname,
-                CardNumber = c.CardNumber,
-                Company = c.Company
+                Nip = c.Nip,
+                CompanyName = c.CompanyName,
             }).ToList();
         }
 
@@ -33,11 +30,9 @@ namespace GasStation.Services
         {
             var customer = new Customer
             {
-                Pesel = customerDTO.Pesel,
-                Name = customerDTO.Name,
-                Surname = customerDTO.Surname,
-                CardNumber = customerDTO.CardNumber,
-                Company = customerDTO.Company
+                Nip = customerDTO.Nip,
+                CompanyName = customerDTO.CompanyName,
+                
             };
             _context.Customers.Add(customer);
             _context.SaveChanges();
@@ -46,7 +41,7 @@ namespace GasStation.Services
 
         public void RemoveCustomer(CustomerDTO customerDTO)
         {
-            var customer = _context.Customers.Find(customerDTO.Pesel);
+            var customer = _context.Customers.Find(customerDTO.Nip);
             if (customer != null)
             {
                 _context.Customers.Remove(customer);
@@ -54,18 +49,15 @@ namespace GasStation.Services
             }
         }
 
-        public CustomerDTO GetCustomerByPesel(string pesel)
+        public CustomerDTO GetCustomerByPesel(string nip)
         {
-            var customer = _context.Customers.Find(pesel);
+            var customer = _context.Customers.Find(nip);
             if (customer != null)
             {
                 return new CustomerDTO
                 {
-                    Pesel = customer.Pesel,
-                    Name = customer.Name,
-                    Surname = customer.Surname,
-                    CardNumber = customer.CardNumber,
-                    Company = customer.Company
+                    Nip = customer.Nip,
+                    CompanyName = customer.CompanyName,
                 };
             }
             return null; // Customer not found

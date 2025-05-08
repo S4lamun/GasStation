@@ -3,7 +3,7 @@
     using System;
     using System.Data.Entity.Migrations;
     
-    public partial class InitialCreate_Schema : DbMigration
+    public partial class InitialCreate2 : DbMigration
     {
         public override void Up()
         {
@@ -11,13 +11,10 @@
                 "dbo.Customers",
                 c => new
                     {
-                        Pesel = c.String(nullable: false, maxLength: 128),
-                        Name = c.String(nullable: false, maxLength: 50),
-                        Surname = c.String(nullable: false, maxLength: 50),
-                        CardNumber = c.String(maxLength: 20),
-                        Company = c.String(maxLength: 50),
+                        Nip = c.String(nullable: false, maxLength: 128),
+                        CompanyName = c.String(nullable: false, maxLength: 50),
                     })
-                .PrimaryKey(t => t.Pesel);
+                .PrimaryKey(t => t.Nip);
             
             CreateTable(
                 "dbo.Order",

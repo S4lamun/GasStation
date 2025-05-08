@@ -18,8 +18,8 @@ namespace GasStation.DTO
 
 
         // Related entity data for display
-        public string CustomerPesel { get; set; }
-        public string CustomerFullName { get; set; } // Full name of the customer
+        public string CustomerNip { get; set; }
+        public string CustomerCompanyName { get; set; } // Full name of the customer
 
         public string EmployeePesel { get; set; }
         public string EmployeeFullName { get; set; } // Full name of the employee
@@ -41,8 +41,8 @@ namespace GasStation.DTO
         [StringLength(50, ErrorMessage = "Payment type cannot exceed 50 characters.")]
         public string PaymentType { get; set; }
 
-        [Required(ErrorMessage = "Customer selection is required.")]
-        public string CustomerPesel { get; set; } // PESEL of the customer selected from a list
+        
+        public string CustomerNip { get; set; } // PESEL of the customer selected from a list
 
         [Required(ErrorMessage = "Employee selection is required.")]
         public string EmployeePesel { get; set; } // PESEL of the employee selected from a list (or logged in)

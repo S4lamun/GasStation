@@ -31,48 +31,34 @@ namespace GasStation.Migrations
             {
                 new Customer
                 {
-                    Pesel = "01234567890",
-                    Name = "Jan",
-                    Surname = "Kowalski",
-                    CardNumber = "112233445566",
-                    Company = "ABC Company"
+                    Nip = "0987654321",
+                    CompanyName = "NieFajnaFirma",
                 },
                 new Customer
                 {
-                    Pesel = "09876543210",
-                    Name = "Anna",
-                    Surname = "Nowak",
-                    CardNumber = "665544332211",
-                    Company = "" // Klient indywidualny
+                   Nip = "1111111111",
+                    CompanyName = "SuperFajnaFirma",
                 },
                 new Customer
                 {
-                    Pesel = "11223344556",
-                    Name = "Piotr",
-                    Surname = "Wiśniewski",
-                    CardNumber = null, // Bez karty
-                    Company = "XYZ Services"
+                    Nip = "2222222222",
+                    CompanyName = "MegaZłaFirma",
                 },
                 new Customer
                 {
-                    Pesel = "33445566778",
-                    Name = "Krzysztof",
-                    Surname = "Lis",
-                    CardNumber = "998877665544",
-                    Company = "Auto Serwis"
+                    Nip = "3333333333",
+                    CompanyName = "MegaFajnaFirma",
                 },
                  new Customer
                 {
-                    Pesel = "44556677889",
-                    Name = "Ewa",
-                    Surname = "Kwiatkowska",
-                    CardNumber = null, // Indywidualny, bez karty
-                    Company = ""
+                    Nip = "1234567890",
+                    CompanyName = "FajnaFirma",
+                    
                 }
             };
 
             context.Customers.AddOrUpdate(
-                c => c.Pesel, // Klucz używany do sprawdzania czy obiekt już istnieje
+                c => c.Nip, // Klucz używany do sprawdzania czy obiekt już istnieje
                 customers.ToArray()
             );
             Trace.TraceInformation("Customers staged (AddOrUpdate).");
@@ -155,7 +141,7 @@ namespace GasStation.Migrations
                 new Fuel { FuelName = "Benzyna 95", DistributorNumber = "Dystr1" },
                 new Fuel { FuelName = "Diesel", DistributorNumber = "Dystr2" },
                 new Fuel { FuelName = "LPG", DistributorNumber = "Dystr3" },
-                new Fuel { FuelName = "Benzyna 98", DistributorNumber = "Dystr1" } // Dodano Benzynę 98
+                
             };
 
             context.Fuels.AddOrUpdate(
@@ -212,7 +198,6 @@ namespace GasStation.Migrations
             var benzyna95 = context.Fuels.Single(f => f.FuelName == "Benzyna 95");
             var diesel = context.Fuels.Single(f => f.FuelName == "Diesel");
             var lpg = context.Fuels.Single(f => f.FuelName == "LPG");
-            var benzyna98 = context.Fuels.Single(f => f.FuelName == "Benzyna 98");
             Trace.TraceInformation("Employees and Fuels retrieved.");
 
 
@@ -264,15 +249,8 @@ namespace GasStation.Migrations
                     Employee = januszEmployee // Przykładowa cena ustalona przez innego pracownika
                 },
 
-                 // Historia cen dla Benzyny 98 (nowe paliwo, jedna cena)
-                 new FuelPriceHistory
-                {
-                    Fuel = benzyna98,
-                    Price = 7.10m,
-                    DateFrom = new DateTime(2025, 5, 8, 0, 0, 0, DateTimeKind.Utc), // Cena od tej daty
-                    DateTo = null, // Cena aktualna
-                    Employee = adminEmployee
-                }
+                
+                
             };
 
             // Dodaj lub zaktualizuj historię cen. Kluczem identyfikującym historyczny wpis
