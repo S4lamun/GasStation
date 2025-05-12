@@ -5,11 +5,16 @@ using System.Web.Mvc;
 
 // ... inne using ...
 
-[Authorize] // Upewnij się, że dostęp do tego kontrolera wymaga logowania
+ // Upewnij się, że dostęp do tego kontrolera wymaga logowania
 public class CashierController : Controller
 {
 	private readonly EmployeeService _employeeService;
 	// ... inne serwisy, jeśli są wstrzykiwane ...
+
+	public CashierController()
+	{
+	
+	}
 
 	public CashierController(EmployeeService employeeService /*, inne serwisy */)
 	{
@@ -66,6 +71,9 @@ public class CashierController : Controller
 
 		return View(currentOrder); // Przekaż model zamówienia do widoku
 	}
-
+	public ActionResult Cashier_view()
+	{
+		return View(); // domyślnie szuka pliku Views/Cashier/Cashier_view.cshtml
+	}
 	// ... inne akcje kontrolera ...
 }
