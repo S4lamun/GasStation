@@ -7,7 +7,7 @@
     ViewBag.Title = "Cashier_view";
 
 
-    var items = Enumerable.Range(1, 8).Select(i => new RefuelingEntryDTO
+    var items = Enumerable.Range(1, 6).Select(i => new RefuelingEntryDTO
     {
         RefuelingEntryId = i,
         Amount = 10.0m + i * 2, // np. ilość zatankowanego paliwa
@@ -19,7 +19,8 @@
 }
 <link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Dodaj JS Select2 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
@@ -40,7 +41,8 @@
             @currentTime.ToString("HH:mm") <span class="date-small">@currentTime.ToString("dd/MM/yyyy")</span>
         </div>
         <div class="info-right">
-            @Html.ActionLink("ZARZĄDZANIE", "PanelAdmina", "Admin", null, new { @class = "btn btn-management" })
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeFuelPriceModal"> Zmień cenę paliwa </button>
+            <button class="action-btn" data-bs-toggle="modal" data-bs-target="#addCustomerModal">DODAJ KLIENTA</button>
         </div>
     </header>
 
@@ -127,6 +129,7 @@
                 <button class="payment-btn large-btn" id="btnCard">KARTA</button>
                 <button class="payment-btn" id="btnInvoice">FAKTURA</button>
                 <button class="action-btn" id="btnFueling">DYSTRYBUTORY</button>
+              
                 <button class="action-btn" id="btnVoidItem">WYCOFAJ POZ.</button>
             </div>
         </section>
@@ -141,7 +144,30 @@
         <span id="btnLogout" class="logout-button">WYLOGUJ</span>
     </footer>
 </div>
-
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <!- Opcjonalnie modal-lg dla szerszego modala ->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel">Dodaj Nowego Klienta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
+            <div class="modal-body">
+                @* Używamy unikalnego ID dla formularza w modalu *@
+                <form id="ajaxAddCustomerForm">
+                    @* Renderujemy widok częściowy z formularzem.
+                        Przekazujemy nową, pustą instancję CustomerDTO. *@
+                    @Html.Partial("~/Views/Customer/_CreateCustomerForm.cshtml", new GasStation.DTO.CustomerDTO())
+                </form>
+                <div id="addCustomerModalAlertPlaceholder" class="mt-3"></div> @* Miejsce na komunikaty *@
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCustomerAjax">Zapisz Klienta</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     {
@@ -204,7 +230,99 @@
             });
         });
 
+         const addCustomerModalElement = document.getElementById('addCustomerModal');
+            const addCustomerForm = document.getElementById('ajaxAddCustomerForm');
+            const btnSaveCustomerAjax = document.getElementById('btnSaveCustomerAjax');
+            const alertPlaceholder = document.getElementById('addCustomerModalAlertPlaceholder');
 
+            function showAlert(message, type = 'success') {
+                alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                                                ${message}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                            </div>`;
+            }
+
+            function clearFormAndAlerts() {
+                addCustomerForm.reset(); // Czyści pola formularza
+                // Usuwa komunikaty walidacyjne dodane przez jQuery Unobtrusive Validation (jeśli używane)
+                const validationMessages = addCustomerForm.querySelectorAll('.field-validation-error span');
+                validationMessages.forEach(span => span.textContent = ''); // lub span.remove()
+                const validationSummary = addCustomerForm.querySelector('#customerFormValidationSummary ul');
+                if(validationSummary) validationSummary.innerHTML = '';
+
+                alertPlaceholder.innerHTML = ''; // Czyści komunikaty z showAlert
+            }
+
+            if (btnSaveCustomerAjax) {
+                btnSaveCustomerAjax.addEventListener('click', function () {
+                    // Prosta walidacja po stronie klienta (można rozbudować lub polegać na serwerowej)
+                    // Dla pełnej walidacji po stronie klienta z DataAnnotations potrzebujesz jQuery Unobtrusive Validation
+                    // i wywołania $(addCustomerForm).validate().form() lub podobnego.
+
+                    const formData = new FormData(addCustomerForm);
+
+                    // Dla uproszczenia użyję fetch API. Jeśli masz jQuery, możesz użyć $.ajax.
+                    fetch('@Url.Action("Create", "Customer")', { // Generuje poprawny URL do akcji
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            // FormData automatycznie ustawia Content-Type na multipart/form-data
+                            // 'RequestVerificationToken': formData.get('__RequestVerificationToken') // Potrzebne jeśli nie wysyłasz jako FormData lub serwer tego oczekuje w nagłówku
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAlert(data.message || 'Klient dodany pomyślnie!', 'success');
+                            addCustomerForm.reset(); // Wyczyść formularz
+                            // Opcjonalnie zamknij modal po chwili
+                            setTimeout(() => {
+                                const modalInstance = bootstrap.Modal.getInstance(addCustomerModalElement);
+                                if (modalInstance) {
+                                    modalInstance.hide();
+                                }
+                                clearFormAndAlerts(); // Czyścimy też przy zamykaniu
+                            }, 2000);
+                            // Tutaj możesz dodać logikę odświeżenia listy klientów, jeśli jest taka potrzeba
+                        } else {
+                            alertPlaceholder.innerHTML = ''; // Wyczyść poprzednie komunikaty
+                            if (data.isValidationError && Array.isArray(data.errors)) {
+                                let errorHtml = '<ul class="list-unstyled text-danger">';
+                                data.errors.forEach(fieldError => {
+                                    // fieldError to obiekt { Key: "NazwaPola", Value: ["Błąd1", "Błąd2"] }
+                                    fieldError.Value.forEach(errMsg => {
+                                        errorHtml += `<li>${fieldError.Key}: ${errMsg}</li>`;
+                                        // Można też próbować znaleźć pole i dodać błąd obok niego
+                                        const inputField = addCustomerForm.querySelector(`[name="${fieldError.Key}"]`);
+                                        let validationSpan = inputField ? inputField.nextElementSibling : null;
+                                        if (validationSpan && validationSpan.classList.contains('text-danger')) {
+                                            validationSpan.textContent = errMsg;
+                                        }
+                                    });
+                                });
+                                errorHtml += '</ul>';
+                                showAlert('Proszę poprawić następujące błędy:<br>' + errorHtml, 'danger');
+                            } else if (Array.isArray(data.errors)) {
+                                showAlert(data.errors.join('<br>'), 'danger');
+                            } else {
+                                showAlert(data.message || 'Wystąpił nieoczekiwany błąd.', 'danger');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Błąd AJAX:', error);
+                        showAlert('Błąd połączenia z serwerem.', 'danger');
+                    });
+                });
+            }
+
+            // Czyść formularz i komunikaty przy zamykaniu modala
+            if (addCustomerModalElement) {
+                addCustomerModalElement.addEventListener('hidden.bs.modal', function () {
+                    clearFormAndAlerts();
+                });
+            }
+        
 
 
 
@@ -244,10 +362,10 @@
             // Funkcja do wyświetlania szczegółów produktu
             function displayProductDetails(product) {
                 productDetails.innerHTML = `
-                <h3>Produkt: ${product.name}</h3>
-                <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
-                <p><strong>Cena:</strong> ${product.price} PLN</p>
-            `;
+                        <h3>Produkt: ${product.name}</h3>
+                        <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
+                        <p><strong>Cena:</strong> ${product.price} PLN</p>
+                    `;
             }
 
             // Funkcja do czyszczenia szczegółów produktu
@@ -290,13 +408,13 @@
                 newItem.dataset.barcode = product.barcode; // Dodajemy dane produktu do elementu
 
                 newItem.innerHTML = `
-                <span>1</span>
-                <span>${product.name}</span>
-                <span>1</span>
-                <span>${product.price}</span>
-                <span>${product.price}</span>
-                <button class="btn-delete-item">X</button>
-            `;
+                        <span>1</span>
+                        <span>${product.name}</span>
+                        <span>1</span>
+                        <span>${product.price}</span>
+                        <span>${product.price}</span>
+                        <button class="btn-delete-item">X</button>
+                    `;
 
                 // Aktualizujemy sumę zamówienia
                 currentTotal += product.price;
@@ -350,7 +468,52 @@
     </script>
     }}
 
+<div class="modal fade" id="changeFuelPriceModal" tabindex="-1" aria-labelledby="changeFuelPriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeFuelPriceModalLabel">Zmień cenę paliwa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
 
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="fuelSelect" class="form-label">Wybierz paliwo</label>
+                        <select id="fuelSelect" class="form-select">
+                            <option selected disabled>-- wybierz paliwo --</option>
+                            <option>Benzyna 95 (D1)</option>
+                            <option>Benzyna 98 (D2)</option>
+                            <option>ON (D3)</option>
+                            <option>LPG (D4)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="priceInput" class="form-label">Nowa cena (zł)</label>
+                        <input type="number" class="form-control" id="priceInput" placeholder="np. 6.45" step="0.01" min="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dateFromInput" class="form-label">Data od kiedy obowiązuje</label>
+                        <input type="datetime-local" class="form-control" id="dateFromInput">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dateToInput" class="form-label">Data do kiedy obowiązuje (opcjonalnie)</label>
+                        <input type="datetime-local" class="form-control" id="dateToInput">
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-success" disabled>Zapisz zmianę</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 <style>
     /* Style CSS - możesz je umieścić w pliku .css lub w sekcji <style> */
     .css-grid-container {

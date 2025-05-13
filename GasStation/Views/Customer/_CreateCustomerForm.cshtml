@@ -1,0 +1,21 @@
+﻿@model GasStation.DTO.CustomerDTO
+@* Upewnij się, że przestrzeń nazw GasStation.DTO jest dostępna *@
+
+@* Ten token jest kluczowy dla bezpieczeństwa przy żądaniach POST.
+    Musi być wewnątrz formularza, który będzie przesyłany. *@
+@Html.AntiForgeryToken()
+
+@* Do wyświetlania ogólnych błędów walidacji modelu, jeśli nie są powiązane z konkretnym polem. *@
+@Html.ValidationSummary(false, "", new { @class = "text-danger mb-3", id = "customerFormValidationSummary" })
+
+<div class="mb-3">
+    @Html.LabelFor(model => model.Nip, htmlAttributes: new { @class = "form-label" })
+    @Html.EditorFor(model => model.Nip, new { htmlAttributes = new { @class = "form-control", placeholder = "Wprowadź 10-cyfrowy NIP" } })
+    @Html.ValidationMessageFor(model => model.Nip, "", new { @class = "text-danger" })
+</div>
+
+<div class="mb-3">
+    @Html.LabelFor(model => model.CompanyName, htmlAttributes: new { @class = "form-label" })
+    @Html.EditorFor(model => model.CompanyName, new { htmlAttributes = new { @class = "form-control", placeholder = "Wprowadź nazwę firmy" } })
+    @Html.ValidationMessageFor(model => model.CompanyName, "", new { @class = "text-danger" })
+</div>

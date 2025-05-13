@@ -1,0 +1,31 @@
+﻿@model GasStation.DTO.CustomerDTO
+
+@{
+    ViewBag.Title = "Dodaj Nowego Klienta";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>@ViewBag.Title</h2>
+
+@using (Html.BeginForm("Create", "Customer", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+{
+    @* Renderujemy widok częściowy z formularzem *@
+    @Html.Partial("_CreateCustomerForm", Model)
+
+    <div class="form-group mt-4">
+        <div class="col-md-offset-2 col-md-10">
+            @* Możesz dostosować klasy col-* dla Bootstrap 5, np. offset-md-2 *@
+            <input type="submit" value="Utwórz klienta" class="btn btn-success" />
+            @Html.ActionLink("Anuluj", "Index", "Customer", null, new { @class = "btn btn-secondary" })
+        </div>
+    </div>
+}
+
+<div>
+    @Html.ActionLink("Wróć do listy", "Index", "Customer")
+</div>
+
+@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}

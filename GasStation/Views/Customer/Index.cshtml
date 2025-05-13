@@ -1,0 +1,57 @@
+﻿@model List<GasStation.DTO.CustomerDTO>
+
+@{
+    ViewBag.Title = "Lista Klientów";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Upewnij się, że ten plik istnieje
+}
+
+<h2>@ViewBag.Title</h2>
+
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @ViewBag.ErrorMessage
+    </div>
+}
+
+<p>
+    @Html.ActionLink("Dodaj nowego klienta", "Create", null, new { @class = "btn btn-primary" })
+</p>
+
+@if (!Model.Any())
+{
+    <p>Brak klientów do wyświetlenia.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.First().Nip)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.First().CompanyName)
+                </th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Nip)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.CompanyName)
+                    </td>
+                    <td>
+                        @Html.ActionLink("Szczegóły", "Details", new { nip = item.Nip }, new { @class = "btn btn-info btn-sm" })
+                        @Html.ActionLink("Usuń", "Delete", new { nip = item.Nip }, new { @class = "btn btn-danger btn-sm" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
