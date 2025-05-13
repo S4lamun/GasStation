@@ -266,6 +266,8 @@
                         method: 'POST',
                         body: formData,
                         headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
                             // FormData automatycznie ustawia Content-Type na multipart/form-data
                             // 'RequestVerificationToken': formData.get('__RequestVerificationToken') // Potrzebne jeśli nie wysyłasz jako FormData lub serwer tego oczekuje w nagłówku
                         }

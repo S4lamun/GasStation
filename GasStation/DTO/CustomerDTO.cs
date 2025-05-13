@@ -6,16 +6,12 @@ namespace GasStation.DTO
 	public class CustomerDTO
 	{
 		[Required(ErrorMessage = "NIP jest wymagany.")]
-		[StringLength(10, MinimumLength = 10, ErrorMessage = "NIP musi składać się z 10 cyfr.")]
-		// Poprawiony komunikat błędu z "Pesel" na "NIP"
-		[RegularExpression(@"^\d{10}$", ErrorMessage = "NIP musi składać się z 10 cyfr.")]
-		[Display(Name = "NIP")] // Dodane dla lepszych etykiet w widokach
+		[StringLength(10, MinimumLength = 10, ErrorMessage = "NIP musi składać się z dokładnie 10 cyfr.")]
+		[RegularExpression("^[0-9]+$", ErrorMessage = "NIP może zawierać tylko cyfry.")] // Opcjonalnie, jeśli NIP ma być tylko cyframi
 		public string Nip { get; set; }
 
-		// Możesz dodać [Required], jeśli nazwa firmy jest zawsze wymagana
 		[Required(ErrorMessage = "Nazwa firmy jest wymagana.")]
-		[StringLength(50, ErrorMessage = "Nazwa firmy nie może przekraczać 50 znaków.")]
-		[Display(Name = "Nazwa Firmy")] // Dodane dla lepszych etykiet
+		[StringLength(100, ErrorMessage = "Nazwa firmy nie może przekraczać 100 znaków.")]
 		public string CompanyName { get; set; }
 	}
 

@@ -17,6 +17,10 @@ namespace GasStation.Controllers
 		// Prywatne pole do przechowywania instancji serwisu CustomerService
 		private readonly CustomerService _customerService;
 
+		public CustomerController()
+		{
+			
+		}
 		// Konstruktor, do którego kontener DI wstrzyknie instancję CustomerService
 		public CustomerController(CustomerService customerService)
 		{
