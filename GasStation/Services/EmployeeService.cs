@@ -274,21 +274,17 @@ namespace GasStation.Services
             }
 
             // 2. Weryfikuj hasło (PORÓWNANIE JAWNEGO TEKSTU - ZMIEŃ TO NA WERYFIKACJĘ HASZU!)
-            if (employee.Password != loginDto.Password)
+            // To jest punkt, który MUSISZ zmienić na WERYFIKACJĘ HASZU HASŁA
+            if (employee.Password != loginDto.Password) // Ta linia porównuje JAWNY TEKST hasła z bazy z JAWNYM TEKSTEM podanym przez użytkownika
             {
                 // Hasło nie pasuje
                 return null; // Uwierzytelnienie niepowodzenie
             }
 
-            // 3. WALIDUJ NOWY WARUNEK BIZNESOWY: login i hasło muszą być identyczne (pozostaje bez zmian)
-            if (loginDto.Login != loginDto.Password)
-            {
-                // Login i hasło pasują do zapisanego, ale nie są IDENTYCZNE - warunek biznesowy nie spełniony
-                return null; // Uwierzytelnienie niepowodzenie
-                             // Lub throw new BusinessLogicException("Login and password must be the same."); // Alternatywnie rzuć wyjątek
-            }
+            // Usunięto warunek "login i hasło muszą być identyczne"
+            // if (loginDto.Login != loginDto.Password) { return null; } // <<< USUŃ TĘ SEKCJE
 
-            // 4. Uwierzytelnienie pomyślne
+            // 3. Uwierzytelnienie pomyślne (login znaleziony i hasło pasuje do zapisanego)
             return MapToDto(employee); // Zwróć DTO pracownika (bez hasła)
         }
 

@@ -1,10 +1,11 @@
-﻿@model GasStation.DTO.CreateOrderDTO
-@using GasStation.DTO
+﻿@model GasStation.DTO.EmployeeLoginDTO
+@* <--- Ustawiamy odpowiedni model dla logowania * *@
+@using GasStation.DTO @* Upewnij się, że masz to, jeśli używasz DTO * *@
 
 @{
-    ViewBag.Title = "Log In - Gas Station";
-    // Layout = "~/Views/Shared/_Layout.cshtml"; // Możesz odkomentować, jeśli chcesz użyć głównego layoutu
-    // Jeśli nie, strona będzie miała tylko te elementy, które są zdefiniowane poniżej
+    ViewBag.Title = "Logowanie - Stacja Benzynowa"; // Zmieniony tytuł
+                                                    // Layout = "~/Views/Shared/_Layout.cshtml"; // Odkomentuj, jeśli chcesz użyć głównego layoutu
+    Layout = null; // Dla prostoty na razie bez głównego layoutu
 }
 
 <!DOCTYPE html>
@@ -13,49 +14,60 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title</title>
-    @* Podstawowe style Bootstrapa, jeśli chcesz ich użyć dla responsywności i ogólnego wyglądu przycisków/formularzy.
-        Możesz je pobrać z CDN lub mieć lokalnie w projekcie.
-        Jeśli nie chcesz Bootstrapa, usuń poniższą linię i opieraj się tylko na własnych stylach. *@
+    @* Podstawowe style Bootstrapa *@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link href="~/Content/css/login-style.css" rel="stylesheet" /> @* Link do Twojego pliku CSS dla logowania *@
+    @* Link do Twojego pliku CSS dla logowania *@
+    @* Upewnij się, że ścieżka jest poprawna względem folderu Content *@
+    <link href="~/Content/css/login-style.css" rel="stylesheet" />
 </head>
 <body>
     <div class="login-container">
-        <h2>Log In to Gas Station</h2>
+        <h2>Logowanie do Stacji Benzynowej</h2> @* Zmieniony nagłówek * *@
         <section id="loginForm">
-            @* Ten formularz na razie nie będzie nic wysyłał, bo skupiamy się na wyglądzie.
-                Gdybyś chciał podpiąć funkcjonalność, użyłbyś Html.BeginForm jak w poprzednich przykładach. *@
-            <form role="form">
-                @* Zwykły tag form dla samego wyglądu *@
-                @* @Html.AntiForgeryToken()  // Potrzebne przy rzeczywistym formularzu MVC *@
+            @* Używamy Html.BeginForm do stworzenia tagu form *@
+            @* Akcja "Login" będzie obsługiwana przez kontroler "Home" metodą POST *@
+            @using (Html.BeginForm("Login", "Home", FormMethod.Post))
+            {
+                @* Włącz token anty-CSRF dla bezpieczeństwa *@
+                @Html.AntiForgeryToken()
+
                 <hr />
-                @* @Html.ValidationSummary(true, "", new { @class = "text-danger" }) // Do wyświetlania błędów *@
+
+                @* Wyświetl ogólne błędy walidacji lub błąd logowania z kontrolera *@
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
                 <div class="form-group">
-                    <label for="Login">Login</label> @* Zwykła etykieta HTML *@
-                    <input type="text" id="Login" name="Login" class="form-control" placeholder="Enter your login" />
-                    @* @Html.ValidationMessageFor(m => m.Login, "", new { @class = "text-danger" }) *@
+                    @* Etykieta generowana na podstawie modelu *@
+                    @Html.LabelFor(m => m.Login, "Login")
+                    @* Pole tekstowe generowane na podstawie modelu, z atrybutami HTML *@
+                    @Html.EditorFor(m => m.Login, new { htmlAttributes = new { @class = "form-control", placeholder = "Wprowadź login" } })
+                    @* Wyświetl błędy walidacji dla pola Login *@
+                    @Html.ValidationMessageFor(m => m.Login, "", new { @class = "text-danger" })
                 </div>
 
                 <div class="form-group">
-                    <label for="Password">Password</label> @* Zwykła etykieta HTML *@
-                    <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" />
-                    @* @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" }) *@
+                    @* Etykieta dla hasła *@
+                    @Html.LabelFor(m => m.Password, "Hasło")
+                    @* Pole hasła - Html.PasswordFor nie wstawia wartości *@
+                    @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Wprowadź hasło" })
+                    @* Wyświetl błędy walidacji dla pola Password *@
+                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
                 </div>
 
                 <div class="form-group">
-                    @* Zmieniony przycisk na link do CashierController -> DisplayCashierPage *@
-                    @Html.ActionLink("Log In (Test View)", "Cashier_view", "Cashier", routeValues: null, htmlAttributes: new { @class = "btn btn-login" })
+                    @* Przycisk typu submit, który wyśle formularz *@
+                    <button type="submit" class="btn btn-primary btn-block">Zaloguj</button> @* Poprawiony wygląd i tekst przycisku *@
 
+                    @* Możesz zostawić link do testowego widoku, jeśli potrzebujesz, ale nie jest to przycisk logowania *@
+                    @* <p class="text-center mt-3">@Html.ActionLink("Przejdź do widoku Kasjera (Test)", "Cashier_view", "Cashier", null, new { @class = "btn btn-secondary" })</p> *@
                 </div>
-            </form>
+            } @* Koniec bloku using dla Html.BeginForm * *@
         </section>
     </div>
 
-    @* Jeśli używasz Bootstrapa lub innej biblioteki JS, możesz tu dodać skrypty.
-        Dla samego wyglądu nie są one konieczne. *@
-    @* <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> *@
+    @* Skrypty Bootstrapa (opcjonalne) *@
+    @* <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> *@
+    @* <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script> *@
+    @* <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> *@
 </body>
 </html>
