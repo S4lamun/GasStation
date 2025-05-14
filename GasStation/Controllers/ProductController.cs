@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Web.Mvc;
-using GasStation.Services; // Pamiętaj o dodaniu using do Twoich serwisów
-using GasStation.DTO; // Pamiętaj o dodaniu using do Twoich DTOs
-using GasStation.Models; // Pamiętaj o dodaniu using do Twoich Models
-						 // Jeśli masz własne wyjątki biznesowe, dodaj using
-						 // using GasStation.Exceptions;
-using System.Linq; // Potrzebne do LINQ
+using GasStation.Services;
+using GasStation.DTO;
+using GasStation.Models;
+using System.Linq;
 
 namespace GasStation.Controllers
 {
@@ -39,6 +37,22 @@ namespace GasStation.Controllers
 				// Obsługa błędów
 				ViewBag.ErrorMessage = "Wystąpił błąd podczas pobierania listy produktów: " + ex.Message;
 				return View("Error"); // Zakładając, że masz widok Error.cshtml
+			}
+		}
+
+		// Nowa akcja zwracająca wszystkie produkty jako JSON dla skryptu JavaScript
+		[HttpGet]
+		public JsonResult GetAllProductsJson()
+		{
+			try
+			{
+				var products = _productService.GetAllProducts();
+				return Json(products, JsonRequestBehavior.AllowGet);
+			}
+			catch (Exception ex)
+			{
+				return Json(new { error = true, message = "Wystąpił błąd podczas pobierania produktów: " + ex.Message },
+					JsonRequestBehavior.AllowGet);
 			}
 		}
 
@@ -221,6 +235,31 @@ namespace GasStation.Controllers
 			return View(productDto);
 		}
 
+		// POST: Product/UpdateProductPrice - endpoint JSON do aktualizacji ceny produktu
+		[HttpPost]
+		public JsonResult UpdateProductPrice(int productId, decimal newPrice)
+		{
+			try
+			{
+				var productDto = new ProductDTO { ProductId = productId };
+				var result = _productService.UpdateProductPrice(productDto, newPrice);
+
+				if (result == null)
+				{
+					return Json(new { success = false, message = "Produkt nie został znaleziony" });
+				}
+
+				return Json(new { success = true, message = "Cena została zaktualizowana", product = result });
+			}
+			catch (ArgumentException ex)
+			{
+				return Json(new { success = false, message = ex.Message });
+			}
+			catch (Exception)
+			{
+				return Json(new { success = false, message = "Wystąpił błąd podczas aktualizacji ceny" });
+			}
+		}
 
 		// GET: Product/Delete/5 (gdzie 5 to ProductId)
 		// Akcja wyświetlająca stronę z potwierdzeniem usunięcia produktu
@@ -301,14 +340,40 @@ namespace GasStation.Controllers
 			}
 		}
 
+		// Dodatkowa akcja JSON do usuwania produktów za pomocą AJAX
+		[HttpPost]
+		public JsonResult RemoveProduct(int productId)
+		{
+			try
+			{
+				var productDto = new ProductDTO { ProductId = productId };
+				_productService.RemoveProduct(productDto);
+				return Json(new { success = true, message = "Produkt został usunięty" });
+			}
+			catch (Exception ex)
+			{
+				return Json(new { success = false, message = "Wystąpił błąd podczas usuwania produktu: " + ex.Message });
+			}
+		}
 
-		// --- Potrzebne Views ---
-		// Dla każdej akcji zwracającej View(), potrzebujesz odpowiadającego pliku .cshtml w folderze Views/Product/
-		// Views/Product/Index.cshtml (Model: List<ProductDTO>) - wyświetla listę produktów
-		// Views/Product/Details.cshtml (Model: ProductDTO) - wyświetla szczegóły produktu
-		// Views/Product/Create.cshtml (Model: ProductDTO) - dla formularza dodawania
-		// Views/Product/Edit.cshtml (Model: ProductDTO) - dla formularza edycji (głównie ceny)
-		// Views/Product/Delete.cshtml (Model: ProductDTO) - dla potwierdzenia usunięcia
-		// Views/Shared/Error.cshtml (opcjonalnie, dla ogólnych błędów)
+		// Dodatkowa akcja JSON do dodawania produktów za pomocą AJAX
+		[HttpPost]
+		public JsonResult AddProduct(ProductDTO productDTO)
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(productDTO.Name) || productDTO.Price <= 0)
+				{
+					return Json(new { success = false, message = "Nazwa produktu i poprawna cena są wymagane" });
+				}
+
+				var result = _productService.AddProduct(productDTO);
+				return Json(new { success = true, message = "Produkt został dodany", product = result });
+			}
+			catch (Exception ex)
+			{
+				return Json(new { success = false, message = "Wystąpił błąd podczas dodawania produktu: " + ex.Message });
+			}
+		}
 	}
 }

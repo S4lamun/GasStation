@@ -176,405 +176,264 @@
 
 
     <script>
-       document.addEventListener('DOMContentLoaded', function () {
-    // Global variables
-    let currentTotal = 0;
-    let selectedProduct = null;
-    let selectedCustomerForInvoice = null;
-    let fuelPrices = {};
-    let customerSearchTimeout = null;
+    document.addEventListener('DOMContentLoaded', () => {
+  let currentTotal = 0;
+  const totalAmount = id('totalAmount');
+  const productSelect = id('productSelect');
+  const receiptItems = id('receiptItems');
+  const timeDisplay = id('timeDisplay');
+  const addCustomerModal = id('addCustomerModal');
+  const addCustomerForm = id('ajaxAddCustomerForm');
+  const customerAlert = id('addCustomerModalAlertPlaceholder');
+  const changeFuelModal = id('changeFuelPriceModal');
+  const fuelTypeSelect = id('fuelTypeSelectDropdown');
+  const newPriceInput = id('newPriceInput');
+  const priceAlert = id('changePriceModalAlertPlaceholder');
+  const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier');
 
-    // DOM Elements
-    const totalAmountSpan = document.getElementById('totalAmount');
-    const productSelect = document.getElementById('productSelect');
-    const btnAddToOrder = document.getElementById('btnAddToOrder');
-    const btnRemoveProduct = document.getElementById('btnRemoveProduct');
-    const productDetails = document.getElementById('productDetails');
-    const receiptItems = document.getElementById('receiptItems');
-    const timeDisplay = document.getElementById('timeDisplay');
+  const btns = {
+    add: id('btnAddToOrder'),
+    remove: id('btnRemoveProduct'),
+    randomFuel: id('btnRandomizeRefuelings'),
+    saveCustomer: id('btnSaveCustomerAjax'),
+    savePrice: id('btnSaveFuelPrice'),
+    cash: id('btnCash'),
+    card: id('btnCard'),
+    invoice: id('btnInvoice')
+  };
 
-    // Add customer modal elements
-    const addCustomerModalElement = document.getElementById('addCustomerModal');
-    const addCustomerForm = document.getElementById('ajaxAddCustomerForm');
-    const btnSaveCustomerAjax = document.getElementById('btnSaveCustomerAjax');
-    const alertPlaceholder = document.getElementById('addCustomerModalAlertPlaceholder');
+  const fuelButtons = [...document.querySelectorAll('.grid-item-button')];
+  let fuelPrices = {};
+  let products = [];
+  let selectedProduct = null;
 
-    // Utility functions
-    function parseAmount(str) {
-        const parsed = parseFloat(str.replace(',', '.'));
-        return isNaN(parsed) ? 0 : parsed;
-    }
+  fetchPrices();
+  fetchProducts();
+  initFuelButtons();
+  initRandomFuel();
+  initProducts();
+  initCustomerModal();
+  initChangeFuelModal();
+  initPayments();
+  initSelect2();
+  updateTime();
+  setInterval(updateTime, 60000);
 
-    function formatPLN(amount) {
-        return amount.toFixed(2).replace('.', ',');
-    }
+  function id(name) { return document.getElementById(name); }
+  function dataset(el, key) { return el && el.dataset[key] || null; }
+  function parseNum(str) { const n = parseFloat(str.replace(',', '.')); return isNaN(n) ? 0 : n; }
+  function fmtPLN(n) { return n.toFixed(2).replace('.', ','); }
+  function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
+  function alertIn(el, msg, type) { if(el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
 
-    // Update total amount display
-    function updateTotalAmountDisplay() {
-        totalAmountSpan.textContent = formatPLN(currentTotal);
-    }
+  function fetchPrices() {
+    fetch('/Fuel/GetCurrentPricesJson').then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => fuelPrices = data.reduce((o,{FuelId,Price})=> (o[FuelId]=Price, o), {}));
+  }
 
-    // Alert functions for customer modal
-    function showAlert(message, type = 'success') {
-        alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                                        ${message}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>`;
-    }
+  function fetchProducts() {
+    fetch('/Product/GetAllProductsJson')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        products = data;
+        populateProductDropdown();
+      })
+      .catch(err => console.error('Error fetching products:', err));
+  }
 
-    function clearFormAndAlerts() {
-        if (addCustomerForm) {
-            addCustomerForm.reset(); // Czyści pola formularza
-            // Usuwa komunikaty walidacyjne dodane przez jQuery Unobtrusive Validation (jeśli używane)
-            const validationMessages = addCustomerForm.querySelectorAll('.field-validation-error span');
-            validationMessages.forEach(span => span.textContent = ''); // lub span.remove()
-            const validationSummary = addCustomerForm.querySelector('#customerFormValidationSummary ul');
-            if(validationSummary) validationSummary.innerHTML = '';
-        }
+  function populateProductDropdown() {
+    if (!productSelect) return;
 
-        if (alertPlaceholder) {
-            alertPlaceholder.innerHTML = ''; // Czyści komunikaty z showAlert
-        }
-    }
+    productSelect.innerHTML = '<option value="">-- Wyszukaj produkt --</option>';
 
-    // FUEL PRICES AND REFUELING
-    // Load fuel prices from server
-    function loadFuelPrices() {
-         fetch('/Fuel/GetCurrentPricesJson', {
-             method: 'GET',
-             headers: { 'Accept': 'application/json' }
-         })
-         .then(response => {
-             if (!response.ok) {
-                  console.error("Błąd HTTP podczas ładowania cen paliw:", response.status);
-                 throw new Error(`HTTP error! status: ${response.status}`);
-             }
-             return response.json();
-         })
-         .then(data => {
-             fuelPrices = data.reduce((prices, item) => {
-                 prices[item.FuelId] = item.Price;
-                 return prices;
-             }, {});
-             console.log("Załadowano ceny paliw:", fuelPrices);
-         })
-         .catch(error => {
-             console.error('Błąd ładowania cen paliw:', error);
-             // Wyświetl komunikat lub użyj domyślnych cen
-         });
-    }
-
-    // Load initial fuel prices
-    loadFuelPrices();
-
-    // Initialize fuel buttons functionality
-    const fuelButtons = document.querySelectorAll('.grid-item-button');
-    fuelButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const currentValue = parseAmount(this.dataset.value || '0');
-
-            // Toggle active state and update total
-            if (this.classList.contains('active-refueling')) {
-                currentTotal -= currentValue;
-                this.classList.remove('active-refueling');
-                console.log(`Odjęto wartość (${currentValue}) od sumy (kliknięto aktywny dystrybutor).`);
-            } else {
-                currentTotal += currentValue;
-                this.classList.add('active-refueling');
-                console.log(`Dodano wartość (${currentValue}) do sumy (kliknięto nieaktywny dystrybutor).`);
-            }
-
-            updateTotalAmountDisplay();
-        });
+    products.forEach(p => {
+      // Uwzględniamy strukturę ProductDTO z właściwościami ProductId, Name i Price
+      const option = new Option(`${p.Name} (${fmtPLN(p.Price)} zł)`, p.ProductId);
+      option.dataset.product = JSON.stringify(p);
+      productSelect.add(option);
     });
+  }
 
-    // Randomize refuelings button
-    const btnRandomizeRefuelings = document.getElementById('btnRandomizeRefuelings');
-    if (btnRandomizeRefuelings) {
-        btnRandomizeRefuelings.addEventListener('click', function () {
-            console.log("Kliknięto przycisk Losuj Nowe Tankowania.");
+  function initFuelButtons() {
+    fuelButtons.forEach(b => b.addEventListener('click', () => {
+      const val = parseNum(b.dataset.value);
+      b.classList.toggle('active-refueling');
+      currentTotal += b.classList.contains('active-refueling') ? val : -val;
+      updateTotal();
+    }));
+  }
 
-            // Reset the active state of all buttons when randomizing
-            fuelButtons.forEach(button => {
-                if (button.classList.contains('active-refueling')) {
-                    const oldValue = parseAmount(button.dataset.value || '0');
-                    currentTotal -= oldValue;
-                    button.classList.remove('active-refueling');
-                }
-            });
-
-            // Now randomize each button
-            fuelButtons.forEach(button => {
-                // Generate random data
-                const randomAmount = (Math.random() * (40 - 1) + 1).toFixed(2);
-                const randomFuelId = Math.floor(Math.random() * 3) + 1;
-
-                // Get price for the randomly selected fuel
-                const priceAtSale = fuelPrices[randomFuelId];
-
-                if (typeof priceAtSale === 'undefined') {
-                    console.error(`Cena dla FuelId ${randomFuelId} nie zdefiniowana. Pomijam aktualizację przycisku ${button.dataset.id}.`);
-                    return;
-                }
-
-                // Calculate new value
-                const newAmount = parseFloat(randomAmount);
-                const newValue = newAmount * priceAtSale;
-
-                // Update button elements
-                const distributorNameSpan = button.querySelector('.distributor-name');
-                const itemCalculatedValueDiv = button.querySelector('.item-calculated-value');
-                const amountDisplaySpan = button.querySelector('.amount-display');
-                const priceDisplaySpan = button.querySelector('.price-display');
-
-                if (distributorNameSpan) distributorNameSpan.textContent = `Dystrybutor ${button.dataset.id}`;
-                if (itemCalculatedValueDiv) itemCalculatedValueDiv.textContent = `${formatPLN(newValue)} zł`;
-                if (amountDisplaySpan) amountDisplaySpan.textContent = `Ilość: ${newAmount.toFixed(2).replace('.', ',')} L`;
-                if (priceDisplaySpan) priceDisplaySpan.textContent = `Cena: ${formatPLN(priceAtSale)} zł/L`;
-
-                // Update button data attributes
-                button.dataset.fuelid = randomFuelId;
-                button.dataset.amount = newAmount.toFixed(2);
-                button.dataset.price = priceAtSale.toFixed(2);
-                button.dataset.value = newValue.toFixed(2);
-
-                console.log(`Dystrybutor ${button.dataset.id} wylosowano: Paliwo ID: ${randomFuelId}, Ilość: ${newAmount.toFixed(2)} L, Wartość: ${formatPLN(newValue)} zł`);
-            });
-
-            // Update total display
-            updateTotalAmountDisplay();
-        });
-    }
-
-    // PRODUCTS FUNCTIONALITY
-    // Sample product data (should come from server in real app)
-    const products = [
-        { id: 1, name: 'Myjnia Program 1', barcode: '123456789', price: 12.00 },
-        { id: 2, name: 'HOT-DOG Amerykański', barcode: '987654321', price: 7.50 },
-        { id: 3, name: 'Kawa Espresso', barcode: '456123789', price: 5.00 },
-        { id: 4, name: 'Frytki Ziemniaczane', barcode: '321654987', price: 3.50 }
-    ];
-
-    // Initialize product select dropdown
-    function populateProductSelect(products) {
-        if (!productSelect) return;
-
-        productSelect.innerHTML = '<option value="">-- Wyszukaj po kodzie kreskowym --</option>';
-        products.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product.barcode;
-            option.textContent = `${product.name} (Kod: ${product.barcode})`;
-            productSelect.appendChild(option);
-        });
-    }
-
-    populateProductSelect(products);
-
-    // Product display functions
-    function displayProductDetails(product) {
-        if (!productDetails) return;
-
-        productDetails.innerHTML = `
-            <h3>Produkt: ${product.name}</h3>
-            <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
-            <p><strong>Cena:</strong> ${product.price} PLN</p>
-        `;
-    }
-
-    function clearProductDetails() {
-        if (productDetails) {
-            productDetails.innerHTML = '';
+  function initRandomFuel() {
+    if(!btns.randomFuel) return;
+    btns.randomFuel.addEventListener('click', () => {
+      fuelButtons.forEach(b => {
+        if(b.classList.contains('active-refueling')) {
+          currentTotal -= parseNum(b.dataset.value);
+          b.classList.remove('active-refueling');
         }
-    }
+        const amount = (Math.random() * 39 + 1).toFixed(2);
+        const fid = Math.ceil(Math.random() * 3);
+        const price = fuelPrices[fid] || 0;
+        const value = amount * price;
+        b.dataset.fuelid = fid;
+        b.dataset.amount = amount;
+        b.dataset.price = price.toFixed(2);
+        b.dataset.value = value.toFixed(2);
+        text(b, '.distributor-name', `Dystrybutor ${b.dataset.id}`);
+        text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
+        text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
+        text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
+      });
+      updateTotal();
+    });
+  }
 
-    // Handle product selection change
-    if (productSelect) {
-        productSelect.addEventListener('change', function () {
-            const selectedBarcode = productSelect.value;
-            if (selectedBarcode) {
-                selectedProduct = products.find(product => product.barcode === selectedBarcode);
-                displayProductDetails(selectedProduct);
-            } else {
-                clearProductDetails();
-                selectedProduct = null;
-            }
-        });
-    }
-
-    // Add product to order
-    if (btnAddToOrder) {
-        btnAddToOrder.addEventListener('click', function () {
-            if (selectedProduct) {
-                addProductToOrder(selectedProduct);
-            } else {
-                alert("Wybierz produkt, który chcesz dodać do zamówienia.");
-            }
-        });
-    }
-
-    function addProductToOrder(product) {
-        if (!receiptItems) return;
-
-        const newItem = document.createElement('div');
-        newItem.classList.add('receipt-item');
-        newItem.dataset.barcode = product.barcode;
-
-        newItem.innerHTML = `
-            <span>1</span>
-            <span>${product.name}</span>
-            <span>1</span>
-            <span>${product.price}</span>
-            <span>${product.price}</span>
-            <button class="btn-delete-item">X</button>
-        `;
-
-        // Update total
-        currentTotal += product.price;
-        updateTotalAmountDisplay();
-
-        // Handle product removal
-        const deleteBtn = newItem.querySelector('.btn-delete-item');
-        deleteBtn.addEventListener('click', function () {
-            currentTotal -= product.price;
-            updateTotalAmountDisplay();
-            newItem.remove();
-        });
-
-        receiptItems.appendChild(newItem);
-    }
-
-    // Remove product button
-    if (btnRemoveProduct) {
-        btnRemoveProduct.addEventListener('click', function () {
-            if (selectedProduct) {
-                const items = document.querySelectorAll('.receipt-item');
-                items.forEach(item => {
-                    if (item.dataset.barcode === selectedProduct.barcode) {
-                        const itemPrice = parseFloat(item.querySelector('span:nth-child(5)').textContent);
-                        currentTotal -= itemPrice;
-                        updateTotalAmountDisplay();
-                        item.remove();
-                    }
-                });
-            } else {
-                alert("Wybierz produkt, który chcesz usunąć z zamówienia.");
-            }
-        });
-    }
-
-    // CUSTOMER FUNCTIONALITY
-    // Save customer button
-    if (btnSaveCustomerAjax) {
-        btnSaveCustomerAjax.addEventListener('click', function () {
-            if (!addCustomerForm) return;
-
-            const formData = new FormData(addCustomerForm);
-
-            fetch('/Customer/Create', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message || 'Klient dodany pomyślnie!', 'success');
-                    addCustomerForm.reset();
-                    setTimeout(() => {
-                        const modalInstance = bootstrap.Modal.getInstance(addCustomerModalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        }
-                        clearFormAndAlerts();
-                    }, 2000);
-                } else {
-                    alertPlaceholder.innerHTML = '';
-                    if (data.isValidationError && Array.isArray(data.errors)) {
-                        let errorHtml = '<ul class="list-unstyled text-danger">';
-                        data.errors.forEach(fieldError => {
-                            fieldError.Value.forEach(errMsg => {
-                                errorHtml += `<li>${fieldError.Key}: ${errMsg}</li>`;
-                                const inputField = addCustomerForm.querySelector(`[name="${fieldError.Key}"]`);
-                                let validationSpan = inputField ? inputField.nextElementSibling : null;
-                                if (validationSpan && validationSpan.classList.contains('text-danger')) {
-                                    validationSpan.textContent = errMsg;
-                                }
-                            });
-                        });
-                        errorHtml += '</ul>';
-                        showAlert('Proszę poprawić następujące błędy:<br>' + errorHtml, 'danger');
-                    } else if (Array.isArray(data.errors)) {
-                        showAlert(data.errors.join('<br>'), 'danger');
-                    } else {
-                        showAlert(data.message || 'Wystąpił nieoczekiwany błąd.', 'danger');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Błąd AJAX:', error);
-                showAlert('Błąd połączenia z serwerem.', 'danger');
-            });
-        });
-    }
-
-    // Clear form on modal close
-    if (addCustomerModalElement) {
-        addCustomerModalElement.addEventListener('hidden.bs.modal', function () {
-            clearFormAndAlerts();
-        });
-    }
-
-    // PAYMENT BUTTONS
-    const btnCash = document.getElementById('btnCash');
-    const btnCard = document.getElementById('btnCard');
-    const btnInvoice = document.getElementById('btnInvoice');
-
-    // Initialize payment buttons
-    if (btnCash) {
-        btnCash.addEventListener('click', function() {
-            alert(`Płatność gotówką: ${formatPLN(currentTotal)} PLN`);
-            // Here you would process the cash payment
-        });
-    }
-
-    if (btnCard) {
-        btnCard.addEventListener('click', function() {
-            alert(`Płatność kartą: ${formatPLN(currentTotal)} PLN`);
-            // Here you would process the card payment
-        });
-    }
-
-    if (btnInvoice) {
-        btnInvoice.addEventListener('click', function() {
-            alert(`Faktura na kwotę: ${formatPLN(currentTotal)} PLN`);
-            // Here you would process the invoice generation
-        });
-    }
-
-    // Initialize Select2 for product dropdown if jQuery and Select2 are available
-    if (typeof $ !== 'undefined' && $.fn.select2) {
-        $('#productSelect').select2({
-            placeholder: '-- Wyszukaj po kodzie kreskowym --',
-            allowClear: true
-        });
-    }
-
-    // Update time display
-    function updateTimeDisplay() {
-        if (timeDisplay) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-            const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            timeDisplay.innerHTML = `${timeStr} <span class="date-small">${dateStr}</span>`;
+  function initProducts() {
+    if(productSelect) {
+      productSelect.addEventListener('change', () => {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        if (selectedOption && selectedOption.dataset.product) {
+          try {
+            selectedProduct = JSON.parse(selectedOption.dataset.product);
+            displayProductDetails(selectedProduct);
+          } catch (e) {
+            console.error("Error parsing product data", e);
+            selectedProduct = null;
+            id('productDetails').innerHTML = '';
+          }
+        } else {
+          selectedProduct = null;
+          id('productDetails').innerHTML = '';
         }
+      });
     }
 
-    // Update time every minute
-    setInterval(updateTimeDisplay, 60000);
-    updateTimeDisplay(); // Initial update
+    btns.add && btns.add.addEventListener('click', () => selectedProduct && addToReceipt(selectedProduct));
+    btns.remove && btns.remove.addEventListener('click', removeSelected);
+  }
+
+  function displayProductDetails(p) {
+    id('productDetails').innerHTML = p ?
+      `<h3>Produkt: ${p.Name}</h3>
+       <p><strong>ID produktu:</strong> ${p.ProductId}</p>
+       <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
+  }
+
+  function addToReceipt(p) {
+    const div = document.createElement('div');
+    div.className = 'receipt-item';
+    div.dataset.productId = p.ProductId;
+    div.innerHTML = `<span>1</span><span>${p.Name}</span><span>1</span><span>${fmtPLN(p.Price)}</span><span>${fmtPLN(p.Price)}</span><button class="btn-delete-item">X</button>`;
+    div.querySelector('.btn-delete-item').addEventListener('click', () => {
+      currentTotal -= p.Price;
+      updateTotal();
+      div.remove();
+    });
+    receiptItems.append(div);
+    currentTotal += p.Price;
+    updateTotal();
+  }
+
+  function removeSelected() {
+    if(!selectedProduct) return alert('Wybierz produkt, który chcesz usunąć z zamówienia.');
+    [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
+      .forEach(i => {
+        currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
+        updateTotal();
+        i.remove();
+      });
+  }
+
+  function initCustomerModal() {
+    btns.saveCustomer && btns.saveCustomer.addEventListener('click', () => {
+      const fd = new FormData(addCustomerForm);
+      fetch('/Customer/Create', {
+        method: 'POST',
+        body: fd,
+        headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+      })
+        .then(r => r.json()).then(data => {
+          if(data.success) {
+            alertIn(customerAlert, data.message || 'Klient dodany', 'success');
+            setTimeout(() => bootstrap.Modal.getInstance(addCustomerModal).hide(), 2000);
+          } else {
+            const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
+            alertIn(customerAlert, msgs.join('<br>'), 'danger');
+          }
+        }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
+    });
+    addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
+  }
+
+  function initChangeFuelModal() {
+    changeFuelModal && changeFuelModal.addEventListener('shown.bs.modal', () => {
+      if(fuelTypeSelect && window.$) $(fuelTypeSelect).select2({
+        placeholder: '-- Wybierz paliwo --',
+        allowClear: true,
+        dropdownParent: $(changeFuelModal),
+        ajax: {
+          url: '/Fuel/GetFuelTypesJson',
+          dataType: 'json',
+          delay: 250,
+          processResults: d => ({results: d}),
+          cache: true
+        }
+      });
+    });
+    changeFuelModal && changeFuelModal.addEventListener('hidden.bs.modal', () => priceAlert.innerHTML = '');
+    btns.savePrice && btns.savePrice.addEventListener('click', () => {
+      const fid = window.$ ? $(fuelTypeSelect).val() : null;
+      const pr = parseNum(newPriceInput.value);
+      if(!fid || pr <= 0 || !employeeId) return alertIn(priceAlert, 'Błąd danych', 'warning');
+      const data = {FuelId: +fid, Price: pr, EmployeePesel: employeeId};
+      fetch('/Fuel/UpdatePrice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+      })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(res => {
+          if(res.success) {
+            alertIn(priceAlert, res.message || 'Zapisano', 'success');
+            setTimeout(() => {
+              bootstrap.Modal.getInstance(changeFuelModal).hide();
+              fetchPrices();
+            }, 1500);
+          } else {
+            alertIn(priceAlert, res.message || 'Błąd', 'danger');
+          }
+        }).catch(() => alertIn(priceAlert, 'Błąd AJAX', 'danger'));
+    });
+  }
+
+  function initPayments() {
+    [{btn: 'cash', msg: 'Płatność gotówką: '}, {btn: 'card', msg: 'Płatność kartą: '}, {btn: 'invoice', msg: 'Faktura na kwotę: '}]
+      .forEach(({btn, msg}) => btns[btn] && btns[btn].addEventListener('click', () => alert(`${msg}${fmtPLN(currentTotal)} PLN`)));
+  }
+
+  function initSelect2() {
+    if(window.$ && $.fn.select2) {
+      $('#productSelect').select2({
+        placeholder: '-- Wyszukaj produkt --',
+        allowClear: true
+      });
+    }
+  }
+
+  function text(parent, sel, t) {
+    const e = parent.querySelector(sel);
+    if(e) e.textContent = t;
+  }
+
+  function updateTime() {
+    const now = new Date();
+    timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'}) +
+      ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
+  }
 });
     </script>
     }}

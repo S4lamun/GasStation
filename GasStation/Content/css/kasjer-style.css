@@ -163,7 +163,7 @@ body {
 	margin-bottom: 15px;
 }
 
-#barcodeInput {
+#IdInput {
 	width: calc(100% - 22px); /* Uwzględnij padding */
 	padding: 10px;
 	margin-bottom: 10px;
