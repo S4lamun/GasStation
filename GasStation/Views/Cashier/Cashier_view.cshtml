@@ -16,6 +16,9 @@
         FuelName = $"{i}", // zamiast Name
         PriceAtSale = 5.50m + i        // przykładowa cena sprzedaży
     }).ToList();
+
+
+
 }
 <link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
@@ -133,11 +136,14 @@
         <span>F3 PALIWA</span>
         <span>F4 KLIENCI</span>
         <span>...</span>
-       
+
         <span class="logout-button">
             @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
             @Html.ActionLink("Wyloguj", "Logout", "Home", null, new { @class = "btn btn-danger" }) @* Możesz dostosować klasy CSS *@
         </span>
+        <div style="text-align: center; margin: 20px;">
+            <button id="btnRandomizeRefuelings" class="btn btn-secondary">Losuj Nowe Tankowania</button>
+        </div>
     </footer>
 </div>
 <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
@@ -167,7 +173,195 @@
 
 @section Scripts {
     {
+
+
     <script>
+        let currentTotal = 0;
+        let selectedProduct = null;
+        let selectedCustomerForInvoice = null;
+
+        let fuelPrices = {};
+
+        let customerSearchTimeout = null;
+
+        function parseAmount(str) {
+            const parsed = parseFloat(str.replace(',', '.'));
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        function formatPLN(amount) {
+            return amount.toFixed(2).replace('.', ',');
+        }
+
+        // ... (inne funkcje pomocnicze: showAlert, showAlertSelectCustomer, clearAddCustomerFormAndAlerts, itp.) ...
+
+        // Funkcja do ładowania aktualnych cen paliw z serwera
+        function loadFuelPrices() {
+             fetch('@Url.Action("GetCurrentPricesJson", "Fuel")', {
+                 method: 'GET',
+                 headers: { 'Accept': 'application/json' }
+             })
+             .then(response => {
+                 if (!response.ok) {
+                      console.error("Błąd HTTP podczas ładowania cen paliw:", response.status);
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+                 return response.json();
+             })
+             .then(data => {
+                 fuelPrices = data.reduce((prices, item) => {
+                     prices[item.FuelId] = item.Price;
+                     return prices;
+                 }, {});
+                 console.log("Załadowano ceny paliw:", fuelPrices);
+             })
+             .catch(error => {
+                 console.error('Błąd ładowania cen paliw:', error);
+                 // Wyświetl komunikat lub użyj domyślnych cen
+             });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Załaduj ceny paliw po załadowaniu strony
+            loadFuelPrices();
+
+            // ... (inicjalizacja currentTotal, obsługa przycisków dystrybutorów - TEJ LOGIKI NA RAZIE NIE ZMIENIAMY) ...
+            // Logika przycisku dystrybutora (kliknięcie na przycisk dystrybutora DODAJĄCEGO WARTOŚĆ) pozostaje taka sama jak wcześniej
+             const fuelButtons = document.querySelectorAll('.grid-item-button');
+             fuelButtons.forEach(button => {
+                 button.addEventListener('click', function () {
+                     // Ten kod wykonuje się, gdy klikniesz przycisk DYSTRYBUTORA
+                     // Pobiera aktualną wartość z data-value (ustawioną albo statycznie z Razor, albo przez przycisk Losuj)
+                     // i dodaje/odejmuje ją od sumy, zarządzając klasą 'active-refueling'.
+
+                     const currentValue = parseAmount(this.dataset.value || '0'); // Wartość wyświetlana aktualnie na przycisku
+
+                      // Logika dodawania/odejmowania wartości z sumy i zarządzania klasą 'active-refueling'
+                      if (this.classList.contains('active-refueling')) {
+                           currentTotal -= currentValue;
+                           this.classList.remove('active-refueling');
+                           console.log(`Ojęto wartość (${currentValue}) od sumy (kliknięto aktywny dystrybutor).`);
+                      } else {
+                           currentTotal += currentValue;
+                           this.classList.add('active-refueling');
+                           console.log(`Dodano wartość (${currentValue}) do sumy (kliknięto nieaktywny dystrybutor).`);
+                      }
+
+                     updateTotalAmountDisplay();
+                 });
+             });
+
+            // ... (Kod do obsługi modali klienta, przycisków paragonu itp.) ...
+
+
+            // *** Nowy kod: Obsługa kliknięcia przycisku "Losuj Nowe Tankowania" ***
+            const btnRandomizeRefuelings = document.getElementById('btnRandomizeRefuelings');
+
+            if (btnRandomizeRefuelings) {
+                btnRandomizeRefuelings.addEventListener('click', function () {
+                    console.log("Kliknięto przycisk Losuj Nowe Tankowania.");
+                    const fuelButtons = document.querySelectorAll('.grid-item-button'); // Pobierz wszystkie przyciski dystrybutorów
+
+                    // Zerujemy sumę całkowitą PRZED ponownym obliczeniem wartości dla wszystkich przycisków
+                    // To jest jedna z mozliwych logik - zakladamy ze Losuj resetuje sume paliw.
+                    // Jesli chcesz inaczej, np. zeby losowanie tylko zmienialo wartosci bez resetowania sumy, trzeba inna logika.
+                    // Na razie zerujemy sume paliw i dodajemy nowe wylosowane wartosci.
+                    let totalValueFromRandomized = 0; // Suma wartosci wylosowanych tankowan
+
+                    fuelButtons.forEach(button => {
+                        // *** Generuj losowe dane tankowania dla TEGO przycisku dystrybutora ***
+                        // Losowa ilość litrów od 1 do 40
+                        const randomAmount = (Math.random() * (40 - 1) + 1).toFixed(2);
+                        // Losowe ID paliwa: 1, 2 lub 3
+                        const randomFuelId = Math.floor(Math.random() * 3) + 1;
+
+                        // Pobierz cenę dla wylosowanego paliwa Z ZAŁADOWANYCH CEN
+                        const priceAtSale = fuelPrices[randomFuelId];
+
+                        // Sprawdź, czy cena paliwa została znaleziona
+                        if (typeof priceAtSale === 'undefined') {
+                             console.error(`Cena dla FuelId ${randomFuelId} nie zdefiniowana. Pomijam aktualizację przycisku ${button.dataset.id}.`);
+                             // Możesz zostawić stare dane na przycisku lub ustawić status błędu
+                             return; // Przejdź do następnego przycisku
+                        }
+
+                        // Oblicz nową wartość tankowania
+                        const newAmount = parseFloat(randomAmount);
+                        const newValue = newAmount * priceAtSale;
+
+                         // *** Zaktualizuj wyświetlane dane na przycisku dystrybutora ***
+                         const distributorNameSpan = button.querySelector('.distributor-name');
+                         const itemCalculatedValueDiv = button.querySelector('.item-calculated-value');
+                         const amountDisplaySpan = button.querySelector('.amount-display');
+                         const priceDisplaySpan = button.querySelector('.price-display');
+
+                         // Aktualizuj tylko jesli elementy zostaly znalezione
+                         if (distributorNameSpan) distributorNameSpan.textContent = `Dystrybutor ${button.dataset.id}`; // Zachowaj numer dystrybutora
+                         if (itemCalculatedValueDiv) itemCalculatedValueDiv.textContent = `${formatPLN(newValue)} zł`;
+                         if (amountDisplaySpan) amountDisplaySpan.textContent = `Ilość: ${newAmount.toFixed(2).replace('.', ',')} L`;
+                         if (priceDisplaySpan) priceDisplaySpan.textContent = `Cena: ${formatPLN(priceAtSale)} zł/L`;
+
+                        // *** Zaktualizuj atrybuty data-* przycisku ***
+                        button.dataset.fuelid = randomFuelId; // Zapisz wylosowane FuelId
+                        button.dataset.amount = newAmount.toFixed(2); // Zapisz nową ilość
+                        button.dataset.price = priceAtSale.toFixed(2); // Zapisz nową cenę
+                        button.dataset.value = newValue.toFixed(2); // Zapisz nową obliczoną wartość
+
+                        // *** Usuń klasę 'active-refueling' ***
+                        // Ponieważ losowanie tworzy "nowe" tankowania, oznaczamy je jako nie dodane jeszcze do sumy kliknięciem.
+                         button.classList.remove('active-refueling');
+
+                         // Dodaj wartość wylosowanego tankowania do tymczasowej sumy
+                         totalValueFromRandomized += newValue;
+
+                        console.log(`Dystrybutor ${button.dataset.id} wylosowano: Paliwo ID: ${randomFuelId}, Ilość: ${newAmount.toFixed(2)} L, Wartość: ${formatPLN(newValue)} zł`);
+                    });
+
+                     // Opcjonalnie: zaktualizuj sumę całkowitą na podstawie sumy wylosowanych wartości
+                     // currentTotal = totalValueFromRandomized; // Jesli losowanie ma nadpisac sume wszystkich aktywnych tankowan
+                     // updateTotalAmountDisplay();
+
+                     // W obecnej logice, kliknięcie przycisku DYSTRYBUTORA dodaje/odejmuje jego WARTOŚĆ.
+                     // Kliknięcie przycisku Losuj tylko UAKTUALNIA wartości na przyciskach, resetując ich status 'active'.
+                     // Suma całkowita jest aktualizowana dopiero po kliknięciu przycisku DYSTRYBUTORA.
+                     console.log("Zaktualizowano dane na przyciskach dystrybutorów. Kliknij przycisk dystrybutora, aby dodać wartość do sumy.");
+
+                });
+            }
+            // --- Koniec nowego kodu ---
+
+
+            // ... Reszta Twojego istniejącego kodu JS (obsługa modali klienta, Select2, przyciski paragonu, finalizacja zamówienia itp.) ...
+
+
+        }); // Koniec DOMContentLoaded
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         document.addEventListener('DOMContentLoaded', function () {
             // Pobieramy element, który wyświetla sumę
             const totalAmountSpan = document.getElementById('totalAmount');
@@ -320,7 +514,7 @@
                     clearFormAndAlerts();
                 });
             }
-        
+
 
 
 

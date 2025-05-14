@@ -168,6 +168,7 @@
     <Compile Include="Controllers\CashierController.cs" />
     <Compile Include="Controllers\CustomerController.cs" />
     <Compile Include="Controllers\EmployeeController.cs" />
+    <Compile Include="Controllers\FuelController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\OrderController.cs" />
     <Compile Include="Controllers\ProductController.cs" />
@@ -251,6 +252,7 @@
     <Folder Include="App_Data\" />
     <Folder Include="Views\Account\" />
     <Folder Include="Views\Employee\" />
+    <Folder Include="Views\Fuel\" />
     <Folder Include="Views\Order\" />
     <Folder Include="Views\Product\" />
   </ItemGroup>
