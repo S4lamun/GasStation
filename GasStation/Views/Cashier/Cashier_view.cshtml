@@ -176,487 +176,406 @@
 
 
     <script>
-        let currentTotal = 0;
-        let selectedProduct = null;
-        let selectedCustomerForInvoice = null;
+       document.addEventListener('DOMContentLoaded', function () {
+    // Global variables
+    let currentTotal = 0;
+    let selectedProduct = null;
+    let selectedCustomerForInvoice = null;
+    let fuelPrices = {};
+    let customerSearchTimeout = null;
 
-        let fuelPrices = {};
+    // DOM Elements
+    const totalAmountSpan = document.getElementById('totalAmount');
+    const productSelect = document.getElementById('productSelect');
+    const btnAddToOrder = document.getElementById('btnAddToOrder');
+    const btnRemoveProduct = document.getElementById('btnRemoveProduct');
+    const productDetails = document.getElementById('productDetails');
+    const receiptItems = document.getElementById('receiptItems');
+    const timeDisplay = document.getElementById('timeDisplay');
 
-        let customerSearchTimeout = null;
+    // Add customer modal elements
+    const addCustomerModalElement = document.getElementById('addCustomerModal');
+    const addCustomerForm = document.getElementById('ajaxAddCustomerForm');
+    const btnSaveCustomerAjax = document.getElementById('btnSaveCustomerAjax');
+    const alertPlaceholder = document.getElementById('addCustomerModalAlertPlaceholder');
 
-        function parseAmount(str) {
-            const parsed = parseFloat(str.replace(',', '.'));
-            return isNaN(parsed) ? 0 : parsed;
+    // Utility functions
+    function parseAmount(str) {
+        const parsed = parseFloat(str.replace(',', '.'));
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function formatPLN(amount) {
+        return amount.toFixed(2).replace('.', ',');
+    }
+
+    // Update total amount display
+    function updateTotalAmountDisplay() {
+        totalAmountSpan.textContent = formatPLN(currentTotal);
+    }
+
+    // Alert functions for customer modal
+    function showAlert(message, type = 'success') {
+        alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                                        ${message}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>`;
+    }
+
+    function clearFormAndAlerts() {
+        if (addCustomerForm) {
+            addCustomerForm.reset(); // Czyści pola formularza
+            // Usuwa komunikaty walidacyjne dodane przez jQuery Unobtrusive Validation (jeśli używane)
+            const validationMessages = addCustomerForm.querySelectorAll('.field-validation-error span');
+            validationMessages.forEach(span => span.textContent = ''); // lub span.remove()
+            const validationSummary = addCustomerForm.querySelector('#customerFormValidationSummary ul');
+            if(validationSummary) validationSummary.innerHTML = '';
         }
 
-        function formatPLN(amount) {
-            return amount.toFixed(2).replace('.', ',');
+        if (alertPlaceholder) {
+            alertPlaceholder.innerHTML = ''; // Czyści komunikaty z showAlert
         }
+    }
 
-        // ... (inne funkcje pomocnicze: showAlert, showAlertSelectCustomer, clearAddCustomerFormAndAlerts, itp.) ...
+    // FUEL PRICES AND REFUELING
+    // Load fuel prices from server
+    function loadFuelPrices() {
+         fetch('/Fuel/GetCurrentPricesJson', {
+             method: 'GET',
+             headers: { 'Accept': 'application/json' }
+         })
+         .then(response => {
+             if (!response.ok) {
+                  console.error("Błąd HTTP podczas ładowania cen paliw:", response.status);
+                 throw new Error(`HTTP error! status: ${response.status}`);
+             }
+             return response.json();
+         })
+         .then(data => {
+             fuelPrices = data.reduce((prices, item) => {
+                 prices[item.FuelId] = item.Price;
+                 return prices;
+             }, {});
+             console.log("Załadowano ceny paliw:", fuelPrices);
+         })
+         .catch(error => {
+             console.error('Błąd ładowania cen paliw:', error);
+             // Wyświetl komunikat lub użyj domyślnych cen
+         });
+    }
 
-        // Funkcja do ładowania aktualnych cen paliw z serwera
-        function loadFuelPrices() {
-             fetch('@Url.Action("GetCurrentPricesJson", "Fuel")', {
-                 method: 'GET',
-                 headers: { 'Accept': 'application/json' }
-             })
-             .then(response => {
-                 if (!response.ok) {
-                      console.error("Błąd HTTP podczas ładowania cen paliw:", response.status);
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-                 return response.json();
-             })
-             .then(data => {
-                 fuelPrices = data.reduce((prices, item) => {
-                     prices[item.FuelId] = item.Price;
-                     return prices;
-                 }, {});
-                 console.log("Załadowano ceny paliw:", fuelPrices);
-             })
-             .catch(error => {
-                 console.error('Błąd ładowania cen paliw:', error);
-                 // Wyświetl komunikat lub użyj domyślnych cen
-             });
+    // Load initial fuel prices
+    loadFuelPrices();
+
+    // Initialize fuel buttons functionality
+    const fuelButtons = document.querySelectorAll('.grid-item-button');
+    fuelButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const currentValue = parseAmount(this.dataset.value || '0');
+
+            // Toggle active state and update total
+            if (this.classList.contains('active-refueling')) {
+                currentTotal -= currentValue;
+                this.classList.remove('active-refueling');
+                console.log(`Odjęto wartość (${currentValue}) od sumy (kliknięto aktywny dystrybutor).`);
+            } else {
+                currentTotal += currentValue;
+                this.classList.add('active-refueling');
+                console.log(`Dodano wartość (${currentValue}) do sumy (kliknięto nieaktywny dystrybutor).`);
+            }
+
+            updateTotalAmountDisplay();
+        });
+    });
+
+    // Randomize refuelings button
+    const btnRandomizeRefuelings = document.getElementById('btnRandomizeRefuelings');
+    if (btnRandomizeRefuelings) {
+        btnRandomizeRefuelings.addEventListener('click', function () {
+            console.log("Kliknięto przycisk Losuj Nowe Tankowania.");
+
+            // Reset the active state of all buttons when randomizing
+            fuelButtons.forEach(button => {
+                if (button.classList.contains('active-refueling')) {
+                    const oldValue = parseAmount(button.dataset.value || '0');
+                    currentTotal -= oldValue;
+                    button.classList.remove('active-refueling');
+                }
+            });
+
+            // Now randomize each button
+            fuelButtons.forEach(button => {
+                // Generate random data
+                const randomAmount = (Math.random() * (40 - 1) + 1).toFixed(2);
+                const randomFuelId = Math.floor(Math.random() * 3) + 1;
+
+                // Get price for the randomly selected fuel
+                const priceAtSale = fuelPrices[randomFuelId];
+
+                if (typeof priceAtSale === 'undefined') {
+                    console.error(`Cena dla FuelId ${randomFuelId} nie zdefiniowana. Pomijam aktualizację przycisku ${button.dataset.id}.`);
+                    return;
+                }
+
+                // Calculate new value
+                const newAmount = parseFloat(randomAmount);
+                const newValue = newAmount * priceAtSale;
+
+                // Update button elements
+                const distributorNameSpan = button.querySelector('.distributor-name');
+                const itemCalculatedValueDiv = button.querySelector('.item-calculated-value');
+                const amountDisplaySpan = button.querySelector('.amount-display');
+                const priceDisplaySpan = button.querySelector('.price-display');
+
+                if (distributorNameSpan) distributorNameSpan.textContent = `Dystrybutor ${button.dataset.id}`;
+                if (itemCalculatedValueDiv) itemCalculatedValueDiv.textContent = `${formatPLN(newValue)} zł`;
+                if (amountDisplaySpan) amountDisplaySpan.textContent = `Ilość: ${newAmount.toFixed(2).replace('.', ',')} L`;
+                if (priceDisplaySpan) priceDisplaySpan.textContent = `Cena: ${formatPLN(priceAtSale)} zł/L`;
+
+                // Update button data attributes
+                button.dataset.fuelid = randomFuelId;
+                button.dataset.amount = newAmount.toFixed(2);
+                button.dataset.price = priceAtSale.toFixed(2);
+                button.dataset.value = newValue.toFixed(2);
+
+                console.log(`Dystrybutor ${button.dataset.id} wylosowano: Paliwo ID: ${randomFuelId}, Ilość: ${newAmount.toFixed(2)} L, Wartość: ${formatPLN(newValue)} zł`);
+            });
+
+            // Update total display
+            updateTotalAmountDisplay();
+        });
+    }
+
+    // PRODUCTS FUNCTIONALITY
+    // Sample product data (should come from server in real app)
+    const products = [
+        { id: 1, name: 'Myjnia Program 1', barcode: '123456789', price: 12.00 },
+        { id: 2, name: 'HOT-DOG Amerykański', barcode: '987654321', price: 7.50 },
+        { id: 3, name: 'Kawa Espresso', barcode: '456123789', price: 5.00 },
+        { id: 4, name: 'Frytki Ziemniaczane', barcode: '321654987', price: 3.50 }
+    ];
+
+    // Initialize product select dropdown
+    function populateProductSelect(products) {
+        if (!productSelect) return;
+
+        productSelect.innerHTML = '<option value="">-- Wyszukaj po kodzie kreskowym --</option>';
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.barcode;
+            option.textContent = `${product.name} (Kod: ${product.barcode})`;
+            productSelect.appendChild(option);
+        });
+    }
+
+    populateProductSelect(products);
+
+    // Product display functions
+    function displayProductDetails(product) {
+        if (!productDetails) return;
+
+        productDetails.innerHTML = `
+            <h3>Produkt: ${product.name}</h3>
+            <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
+            <p><strong>Cena:</strong> ${product.price} PLN</p>
+        `;
+    }
+
+    function clearProductDetails() {
+        if (productDetails) {
+            productDetails.innerHTML = '';
         }
+    }
 
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Załaduj ceny paliw po załadowaniu strony
-            loadFuelPrices();
-
-            // ... (inicjalizacja currentTotal, obsługa przycisków dystrybutorów - TEJ LOGIKI NA RAZIE NIE ZMIENIAMY) ...
-            // Logika przycisku dystrybutora (kliknięcie na przycisk dystrybutora DODAJĄCEGO WARTOŚĆ) pozostaje taka sama jak wcześniej
-             const fuelButtons = document.querySelectorAll('.grid-item-button');
-             fuelButtons.forEach(button => {
-                 button.addEventListener('click', function () {
-                     // Ten kod wykonuje się, gdy klikniesz przycisk DYSTRYBUTORA
-                     // Pobiera aktualną wartość z data-value (ustawioną albo statycznie z Razor, albo przez przycisk Losuj)
-                     // i dodaje/odejmuje ją od sumy, zarządzając klasą 'active-refueling'.
-
-                     const currentValue = parseAmount(this.dataset.value || '0'); // Wartość wyświetlana aktualnie na przycisku
-
-                      // Logika dodawania/odejmowania wartości z sumy i zarządzania klasą 'active-refueling'
-                      if (this.classList.contains('active-refueling')) {
-                           currentTotal -= currentValue;
-                           this.classList.remove('active-refueling');
-                           console.log(`Ojęto wartość (${currentValue}) od sumy (kliknięto aktywny dystrybutor).`);
-                      } else {
-                           currentTotal += currentValue;
-                           this.classList.add('active-refueling');
-                           console.log(`Dodano wartość (${currentValue}) do sumy (kliknięto nieaktywny dystrybutor).`);
-                      }
-
-                     updateTotalAmountDisplay();
-                 });
-             });
-
-            // ... (Kod do obsługi modali klienta, przycisków paragonu itp.) ...
-
-
-            // *** Nowy kod: Obsługa kliknięcia przycisku "Losuj Nowe Tankowania" ***
-            const btnRandomizeRefuelings = document.getElementById('btnRandomizeRefuelings');
-
-            if (btnRandomizeRefuelings) {
-                btnRandomizeRefuelings.addEventListener('click', function () {
-                    console.log("Kliknięto przycisk Losuj Nowe Tankowania.");
-                    const fuelButtons = document.querySelectorAll('.grid-item-button'); // Pobierz wszystkie przyciski dystrybutorów
-
-                    // Zerujemy sumę całkowitą PRZED ponownym obliczeniem wartości dla wszystkich przycisków
-                    // To jest jedna z mozliwych logik - zakladamy ze Losuj resetuje sume paliw.
-                    // Jesli chcesz inaczej, np. zeby losowanie tylko zmienialo wartosci bez resetowania sumy, trzeba inna logika.
-                    // Na razie zerujemy sume paliw i dodajemy nowe wylosowane wartosci.
-                    let totalValueFromRandomized = 0; // Suma wartosci wylosowanych tankowan
-
-                    fuelButtons.forEach(button => {
-                        // *** Generuj losowe dane tankowania dla TEGO przycisku dystrybutora ***
-                        // Losowa ilość litrów od 1 do 40
-                        const randomAmount = (Math.random() * (40 - 1) + 1).toFixed(2);
-                        // Losowe ID paliwa: 1, 2 lub 3
-                        const randomFuelId = Math.floor(Math.random() * 3) + 1;
-
-                        // Pobierz cenę dla wylosowanego paliwa Z ZAŁADOWANYCH CEN
-                        const priceAtSale = fuelPrices[randomFuelId];
-
-                        // Sprawdź, czy cena paliwa została znaleziona
-                        if (typeof priceAtSale === 'undefined') {
-                             console.error(`Cena dla FuelId ${randomFuelId} nie zdefiniowana. Pomijam aktualizację przycisku ${button.dataset.id}.`);
-                             // Możesz zostawić stare dane na przycisku lub ustawić status błędu
-                             return; // Przejdź do następnego przycisku
-                        }
-
-                        // Oblicz nową wartość tankowania
-                        const newAmount = parseFloat(randomAmount);
-                        const newValue = newAmount * priceAtSale;
-
-                         // *** Zaktualizuj wyświetlane dane na przycisku dystrybutora ***
-                         const distributorNameSpan = button.querySelector('.distributor-name');
-                         const itemCalculatedValueDiv = button.querySelector('.item-calculated-value');
-                         const amountDisplaySpan = button.querySelector('.amount-display');
-                         const priceDisplaySpan = button.querySelector('.price-display');
-
-                         // Aktualizuj tylko jesli elementy zostaly znalezione
-                         if (distributorNameSpan) distributorNameSpan.textContent = `Dystrybutor ${button.dataset.id}`; // Zachowaj numer dystrybutora
-                         if (itemCalculatedValueDiv) itemCalculatedValueDiv.textContent = `${formatPLN(newValue)} zł`;
-                         if (amountDisplaySpan) amountDisplaySpan.textContent = `Ilość: ${newAmount.toFixed(2).replace('.', ',')} L`;
-                         if (priceDisplaySpan) priceDisplaySpan.textContent = `Cena: ${formatPLN(priceAtSale)} zł/L`;
-
-                        // *** Zaktualizuj atrybuty data-* przycisku ***
-                        button.dataset.fuelid = randomFuelId; // Zapisz wylosowane FuelId
-                        button.dataset.amount = newAmount.toFixed(2); // Zapisz nową ilość
-                        button.dataset.price = priceAtSale.toFixed(2); // Zapisz nową cenę
-                        button.dataset.value = newValue.toFixed(2); // Zapisz nową obliczoną wartość
-
-                        // *** Usuń klasę 'active-refueling' ***
-                        // Ponieważ losowanie tworzy "nowe" tankowania, oznaczamy je jako nie dodane jeszcze do sumy kliknięciem.
-                         button.classList.remove('active-refueling');
-
-                         // Dodaj wartość wylosowanego tankowania do tymczasowej sumy
-                         totalValueFromRandomized += newValue;
-
-                        console.log(`Dystrybutor ${button.dataset.id} wylosowano: Paliwo ID: ${randomFuelId}, Ilość: ${newAmount.toFixed(2)} L, Wartość: ${formatPLN(newValue)} zł`);
-                    });
-
-                     // Opcjonalnie: zaktualizuj sumę całkowitą na podstawie sumy wylosowanych wartości
-                     // currentTotal = totalValueFromRandomized; // Jesli losowanie ma nadpisac sume wszystkich aktywnych tankowan
-                     // updateTotalAmountDisplay();
-
-                     // W obecnej logice, kliknięcie przycisku DYSTRYBUTORA dodaje/odejmuje jego WARTOŚĆ.
-                     // Kliknięcie przycisku Losuj tylko UAKTUALNIA wartości na przyciskach, resetując ich status 'active'.
-                     // Suma całkowita jest aktualizowana dopiero po kliknięciu przycisku DYSTRYBUTORA.
-                     console.log("Zaktualizowano dane na przyciskach dystrybutorów. Kliknij przycisk dystrybutora, aby dodać wartość do sumy.");
-
-                });
+    // Handle product selection change
+    if (productSelect) {
+        productSelect.addEventListener('change', function () {
+            const selectedBarcode = productSelect.value;
+            if (selectedBarcode) {
+                selectedProduct = products.find(product => product.barcode === selectedBarcode);
+                displayProductDetails(selectedProduct);
+            } else {
+                clearProductDetails();
+                selectedProduct = null;
             }
-            // --- Koniec nowego kodu ---
+        });
+    }
 
-
-            // ... Reszta Twojego istniejącego kodu JS (obsługa modali klienta, Select2, przyciski paragonu, finalizacja zamówienia itp.) ...
-
-
-        }); // Koniec DOMContentLoaded
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Pobieramy element, który wyświetla sumę
-            const totalAmountSpan = document.getElementById('totalAmount');
-
-            // Funkcja do parsowania wartości z tekstu
-            function parseAmount(str) {
-                return parseFloat(str.replace(',', '.'));
+    // Add product to order
+    if (btnAddToOrder) {
+        btnAddToOrder.addEventListener('click', function () {
+            if (selectedProduct) {
+                addProductToOrder(selectedProduct);
+            } else {
+                alert("Wybierz produkt, który chcesz dodać do zamówienia.");
             }
+        });
+    }
 
-            // Funkcja do formatowania wartości w polskim formacie waluty
-            function formatPLN(amount) {
-                return amount.toFixed(2).replace('.', ',');
-            }
+    function addProductToOrder(product) {
+        if (!receiptItems) return;
 
-            // Pobieramy początkową wartość z elementu, na którym jest wyświetlana suma
-            let currentTotal = parseAmount(totalAmountSpan.textContent.trim());
+        const newItem = document.createElement('div');
+        newItem.classList.add('receipt-item');
+        newItem.dataset.barcode = product.barcode;
 
-            // Jeśli odczytana wartość jest nieprawidłowa, ustawiamy ją na 0
-            if (isNaN(currentTotal)) currentTotal = 0;
+        newItem.innerHTML = `
+            <span>1</span>
+            <span>${product.name}</span>
+            <span>1</span>
+            <span>${product.price}</span>
+            <span>${product.price}</span>
+            <button class="btn-delete-item">X</button>
+        `;
 
-            // Znajdź wszystkie przyciski z klasą 'grid-item-button'
-            const buttons = document.querySelectorAll('.grid-item-button');
+        // Update total
+        currentTotal += product.price;
+        updateTotalAmountDisplay();
 
-            buttons.forEach(button => {
-                // Dodajemy nasłuchiwanie na kliknięcie przycisku
-                button.addEventListener('click', function () {
-                    // Odczytujemy wartość przycisku
-                    const valueStr = this.dataset.value;
-                    const value = parseFloat(valueStr);
+        // Handle product removal
+        const deleteBtn = newItem.querySelector('.btn-delete-item');
+        deleteBtn.addEventListener('click', function () {
+            currentTotal -= product.price;
+            updateTotalAmountDisplay();
+            newItem.remove();
+        });
 
-                    // Jeśli wartość jest poprawna
-                    if (!isNaN(value)) {
-                        // Sprawdzamy, czy przycisk został już kliknięty (ma klasę 'clicked')
-                        const isClicked = this.classList.contains('clicked');
+        receiptItems.appendChild(newItem);
+    }
 
-                        if (isClicked) {
-                            // Jeśli przycisk był wcześniej kliknięty, odejmujemy wartość
-                            currentTotal -= value;
-
-                            // Usuwamy klasę 'clicked', bo przycisk zostanie kliknięty ponownie
-                            this.classList.remove('clicked');
-                        } else {
-                            // Jeśli przycisk nie był wcześniej kliknięty, dodajemy wartość
-                            currentTotal += value;
-
-                            // Dodajemy klasę 'clicked', bo przycisk został kliknięty
-                            this.classList.add('clicked');
-                        }
-
-                        // Aktualizujemy wyświetlaną wartość na stronie
-                        totalAmountSpan.textContent = formatPLN(currentTotal);
-                    } else {
-                        console.error("Nieprawidłowa wartość:", valueStr);
+    // Remove product button
+    if (btnRemoveProduct) {
+        btnRemoveProduct.addEventListener('click', function () {
+            if (selectedProduct) {
+                const items = document.querySelectorAll('.receipt-item');
+                items.forEach(item => {
+                    if (item.dataset.barcode === selectedProduct.barcode) {
+                        const itemPrice = parseFloat(item.querySelector('span:nth-child(5)').textContent);
+                        currentTotal -= itemPrice;
+                        updateTotalAmountDisplay();
+                        item.remove();
                     }
                 });
-            });
+            } else {
+                alert("Wybierz produkt, który chcesz usunąć z zamówienia.");
+            }
         });
+    }
 
-         const addCustomerModalElement = document.getElementById('addCustomerModal');
-            const addCustomerForm = document.getElementById('ajaxAddCustomerForm');
-            const btnSaveCustomerAjax = document.getElementById('btnSaveCustomerAjax');
-            const alertPlaceholder = document.getElementById('addCustomerModalAlertPlaceholder');
+    // CUSTOMER FUNCTIONALITY
+    // Save customer button
+    if (btnSaveCustomerAjax) {
+        btnSaveCustomerAjax.addEventListener('click', function () {
+            if (!addCustomerForm) return;
 
-            function showAlert(message, type = 'success') {
-                alertPlaceholder.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                                                ${message}
-                                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>`;
-            }
+            const formData = new FormData(addCustomerForm);
 
-            function clearFormAndAlerts() {
-                addCustomerForm.reset(); // Czyści pola formularza
-                // Usuwa komunikaty walidacyjne dodane przez jQuery Unobtrusive Validation (jeśli używane)
-                const validationMessages = addCustomerForm.querySelectorAll('.field-validation-error span');
-                validationMessages.forEach(span => span.textContent = ''); // lub span.remove()
-                const validationSummary = addCustomerForm.querySelector('#customerFormValidationSummary ul');
-                if(validationSummary) validationSummary.innerHTML = '';
-
-                alertPlaceholder.innerHTML = ''; // Czyści komunikaty z showAlert
-            }
-
-            if (btnSaveCustomerAjax) {
-                btnSaveCustomerAjax.addEventListener('click', function () {
-                    // Prosta walidacja po stronie klienta (można rozbudować lub polegać na serwerowej)
-                    // Dla pełnej walidacji po stronie klienta z DataAnnotations potrzebujesz jQuery Unobtrusive Validation
-                    // i wywołania $(addCustomerForm).validate().form() lub podobnego.
-
-                    const formData = new FormData(addCustomerForm);
-
-                    // Dla uproszczenia użyję fetch API. Jeśli masz jQuery, możesz użyć $.ajax.
-                    fetch('@Url.Action("Create", "Customer")', { // Generuje poprawny URL do akcji
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                            // FormData automatycznie ustawia Content-Type na multipart/form-data
-                            // 'RequestVerificationToken': formData.get('__RequestVerificationToken') // Potrzebne jeśli nie wysyłasz jako FormData lub serwer tego oczekuje w nagłówku
+            fetch('/Customer/Create', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message || 'Klient dodany pomyślnie!', 'success');
+                    addCustomerForm.reset();
+                    setTimeout(() => {
+                        const modalInstance = bootstrap.Modal.getInstance(addCustomerModalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
                         }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showAlert(data.message || 'Klient dodany pomyślnie!', 'success');
-                            addCustomerForm.reset(); // Wyczyść formularz
-                            // Opcjonalnie zamknij modal po chwili
-                            setTimeout(() => {
-                                const modalInstance = bootstrap.Modal.getInstance(addCustomerModalElement);
-                                if (modalInstance) {
-                                    modalInstance.hide();
+                        clearFormAndAlerts();
+                    }, 2000);
+                } else {
+                    alertPlaceholder.innerHTML = '';
+                    if (data.isValidationError && Array.isArray(data.errors)) {
+                        let errorHtml = '<ul class="list-unstyled text-danger">';
+                        data.errors.forEach(fieldError => {
+                            fieldError.Value.forEach(errMsg => {
+                                errorHtml += `<li>${fieldError.Key}: ${errMsg}</li>`;
+                                const inputField = addCustomerForm.querySelector(`[name="${fieldError.Key}"]`);
+                                let validationSpan = inputField ? inputField.nextElementSibling : null;
+                                if (validationSpan && validationSpan.classList.contains('text-danger')) {
+                                    validationSpan.textContent = errMsg;
                                 }
-                                clearFormAndAlerts(); // Czyścimy też przy zamykaniu
-                            }, 2000);
-                            // Tutaj możesz dodać logikę odświeżenia listy klientów, jeśli jest taka potrzeba
-                        } else {
-                            alertPlaceholder.innerHTML = ''; // Wyczyść poprzednie komunikaty
-                            if (data.isValidationError && Array.isArray(data.errors)) {
-                                let errorHtml = '<ul class="list-unstyled text-danger">';
-                                data.errors.forEach(fieldError => {
-                                    // fieldError to obiekt { Key: "NazwaPola", Value: ["Błąd1", "Błąd2"] }
-                                    fieldError.Value.forEach(errMsg => {
-                                        errorHtml += `<li>${fieldError.Key}: ${errMsg}</li>`;
-                                        // Można też próbować znaleźć pole i dodać błąd obok niego
-                                        const inputField = addCustomerForm.querySelector(`[name="${fieldError.Key}"]`);
-                                        let validationSpan = inputField ? inputField.nextElementSibling : null;
-                                        if (validationSpan && validationSpan.classList.contains('text-danger')) {
-                                            validationSpan.textContent = errMsg;
-                                        }
-                                    });
-                                });
-                                errorHtml += '</ul>';
-                                showAlert('Proszę poprawić następujące błędy:<br>' + errorHtml, 'danger');
-                            } else if (Array.isArray(data.errors)) {
-                                showAlert(data.errors.join('<br>'), 'danger');
-                            } else {
-                                showAlert(data.message || 'Wystąpił nieoczekiwany błąd.', 'danger');
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Błąd AJAX:', error);
-                        showAlert('Błąd połączenia z serwerem.', 'danger');
-                    });
-                });
-            }
-
-            // Czyść formularz i komunikaty przy zamykaniu modala
-            if (addCustomerModalElement) {
-                addCustomerModalElement.addEventListener('hidden.bs.modal', function () {
-                    clearFormAndAlerts();
-                });
-            }
-
-
-
-
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Lista produktów (w przyszłości może pochodzić z bazy danych)
-            const products = [
-                { id: 1, name: 'Myjnia Program 1', barcode: '123456789', price: 12.00 },
-                { id: 2, name: 'HOT-DOG Amerykański', barcode: '987654321', price: 7.50 },
-                { id: 3, name: 'Kawa Espresso', barcode: '456123789', price: 5.00 },
-                { id: 4, name: 'Frytki Ziemniaczane', barcode: '321654987', price: 3.50 }
-            ];
-
-            const productSelect = document.getElementById('productSelect');
-            const btnAddToOrder = document.getElementById('btnAddToOrder');
-            const btnRemoveProduct = document.getElementById('btnRemoveProduct');
-            const productDetails = document.getElementById('productDetails');
-            const totalAmount = document.getElementById('totalAmount');
-
-            let selectedProduct = null; // Zmienna przechowująca wybrany produkt
-            let currentTotal = 0; // Zmienna przechowująca całkowitą sumę zamówienia
-
-            // Funkcja do dodawania produktów do rozwijanej listy
-            function populateProductSelect(products) {
-                productSelect.innerHTML = '<option value="">-- Wyszukaj po kodzie kreskowym --</option>'; // Resetowanie listy
-                products.forEach(product => {
-                    const option = document.createElement('option');
-                    option.value = product.barcode;
-                    option.textContent = `${product.name} (Kod: ${product.barcode})`;
-                    productSelect.appendChild(option);
-                });
-            }
-
-            // Inicjalizacja rozwijanej listy z produktami
-            populateProductSelect(products);
-
-            // Funkcja do wyświetlania szczegółów produktu
-            function displayProductDetails(product) {
-                productDetails.innerHTML = `
-                        <h3>Produkt: ${product.name}</h3>
-                        <p><strong>Kod kreskowy:</strong> ${product.barcode}</p>
-                        <p><strong>Cena:</strong> ${product.price} PLN</p>
-                    `;
-            }
-
-            // Funkcja do czyszczenia szczegółów produktu
-            function clearProductDetails() {
-                productDetails.innerHTML = '';
-            }
-
-            // Funkcja do aktualizacji sumy zamówienia
-            function updateTotalAmount() {
-                totalAmount.textContent = currentTotal.toFixed(2); // Aktualizuje tekst w elemencie totalAmount
-            }
-
-            // Obsługa zmiany w wyszukiwarce
-            productSelect.addEventListener('change', function () {
-                const selectedBarcode = productSelect.value;
-                if (selectedBarcode) {
-                    selectedProduct = products.find(product => product.barcode === selectedBarcode);
-                    displayProductDetails(selectedProduct);
-                } else {
-                    clearProductDetails();
-                    selectedProduct = null; // Resetowanie wybranego produktu
+                            });
+                        });
+                        errorHtml += '</ul>';
+                        showAlert('Proszę poprawić następujące błędy:<br>' + errorHtml, 'danger');
+                    } else if (Array.isArray(data.errors)) {
+                        showAlert(data.errors.join('<br>'), 'danger');
+                    } else {
+                        showAlert(data.message || 'Wystąpił nieoczekiwany błąd.', 'danger');
+                    }
                 }
-            });
-
-            // Obsługa dodawania produktu do zamówienia
-            btnAddToOrder.addEventListener('click', function () {
-                if (selectedProduct) {
-                    // Wyświetlamy produkt w sekcji zamówienia
-                    addProductToOrder(selectedProduct);
-                } else {
-                    alert("Wybierz produkt, który chcesz dodać do zamówienia.");
-                }
-            });
-
-            // Funkcja do dodawania produktu do zamówienia
-            function addProductToOrder(product) {
-                const orderList = document.getElementById('receiptItems');
-                const newItem = document.createElement('div');
-                newItem.classList.add('receipt-item');
-                newItem.dataset.barcode = product.barcode; // Dodajemy dane produktu do elementu
-
-                newItem.innerHTML = `
-                        <span>1</span>
-                        <span>${product.name}</span>
-                        <span>1</span>
-                        <span>${product.price}</span>
-                        <span>${product.price}</span>
-                        <button class="btn-delete-item">X</button>
-                    `;
-
-                // Aktualizujemy sumę zamówienia
-                currentTotal += product.price;
-                updateTotalAmount();
-
-                // Obsługuje usuwanie produktu z zamówienia
-                const deleteBtn = newItem.querySelector('.btn-delete-item');
-                deleteBtn.addEventListener('click', function () {
-                    // Zmniejszamy sumę zamówienia
-                    currentTotal -= product.price;
-                    updateTotalAmount();
-                    newItem.remove();
-                });
-
-                orderList.appendChild(newItem);
-            }
-
-            // Obsługa usuwania wybranego produktu
-            btnRemoveProduct.addEventListener('click', function () {
-                if (selectedProduct) {
-                    // Usuwamy produkt z zamówienia, jeśli jest
-                    const items = document.querySelectorAll('.receipt-item');
-                    items.forEach(item => {
-                        if (item.dataset.barcode === selectedProduct.barcode) {
-                            const itemPrice = parseFloat(item.querySelector('span:nth-child(5)').textContent);
-                            // Zmniejszamy sumę zamówienia
-                            currentTotal -= itemPrice;
-                            updateTotalAmount();
-                            item.remove();
-                        }
-                    });
-                } else {
-                    alert("Wybierz produkt, który chcesz usunąć z zamówienia.");
-                }
+            })
+            .catch(error => {
+                console.error('Błąd AJAX:', error);
+                showAlert('Błąd połączenia z serwerem.', 'danger');
             });
         });
+    }
 
-
-
-
-
-
-        $(document).ready(function () {
-            $('#productSelect').select2({
-                placeholder: '-- Wyszukaj po kodzie kreskowym --',
-                allowClear: true
-            });
+    // Clear form on modal close
+    if (addCustomerModalElement) {
+        addCustomerModalElement.addEventListener('hidden.bs.modal', function () {
+            clearFormAndAlerts();
         });
+    }
 
+    // PAYMENT BUTTONS
+    const btnCash = document.getElementById('btnCash');
+    const btnCard = document.getElementById('btnCard');
+    const btnInvoice = document.getElementById('btnInvoice');
 
+    // Initialize payment buttons
+    if (btnCash) {
+        btnCash.addEventListener('click', function() {
+            alert(`Płatność gotówką: ${formatPLN(currentTotal)} PLN`);
+            // Here you would process the cash payment
+        });
+    }
+
+    if (btnCard) {
+        btnCard.addEventListener('click', function() {
+            alert(`Płatność kartą: ${formatPLN(currentTotal)} PLN`);
+            // Here you would process the card payment
+        });
+    }
+
+    if (btnInvoice) {
+        btnInvoice.addEventListener('click', function() {
+            alert(`Faktura na kwotę: ${formatPLN(currentTotal)} PLN`);
+            // Here you would process the invoice generation
+        });
+    }
+
+    // Initialize Select2 for product dropdown if jQuery and Select2 are available
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#productSelect').select2({
+            placeholder: '-- Wyszukaj po kodzie kreskowym --',
+            allowClear: true
+        });
+    }
+
+    // Update time display
+    function updateTimeDisplay() {
+        if (timeDisplay) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            timeDisplay.innerHTML = `${timeStr} <span class="date-small">${dateStr}</span>`;
+        }
+    }
+
+    // Update time every minute
+    setInterval(updateTimeDisplay, 60000);
+    updateTimeDisplay(); // Initial update
+});
     </script>
     }}
 
@@ -707,106 +626,235 @@
     </div>
 </div>
 <style>
-    /* Style CSS - możesz je umieścić w pliku .css lub w sekcji <style> */
-    .css-grid-container {
-        display: grid;
-        /* Definiuje kolumny. repeat(3, 1fr) tworzy 3 kolumny o równej szerokości */
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        padding: 20px;
-        border: 1px solid #ccc;
+   
+    :root {
+        --primary-color: #007bff;
+        --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
+
+        --secondary-color: #6c757d;
+        --secondary-color-darken10: #545b62; /* Trochę ciemniejszy secondary */
+
+        --success-color: #28a745;
+        --success-color-darken10: #218838; /* Trochę ciemniejszy success */
+
+        --info-color: #17a2b8;
+        --info-color-lighten30: #5bc0de; /* Trochę jaśniejszy info */
+
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+        --dark-color: #343a40;
+        --dark-color-darken10: #1d2124; /* Trochę ciemniejszy dark */
+
+        --light-color: #f8f9fa;
+        --white-color: #fff;
+        --border-color: #ced4da;
+        --text-color: #212529;
+        --text-light: #f8f9fa;
+        --spacing-unit: 1rem;
     }
 
-    .grid-item {
-        background-color: #f0f0f0;
-        border: 1px solid #ddd;
-        height: 1.5em;
-        width: 100%;
-        padding: 15px;
-        text-align: center;
-        border-radius: 5px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: red;
-    }
-
-    .grid-item-button {
+    body {
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--light-color);
+        margin: 0;
+        padding: 0;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        text-align: center;
-        width: 100%;
-        height: 10em;
-        padding: 15px;
-        margin: 0;
-        background-color: #f0f0f0;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: inherit;
-        color: red;
-        transition: background-color 0.3s ease;
-        box-sizing: border-box;
+        min-height: 100vh; /* Ustawia minimalną wysokość na 100% widocznej części okna */
     }
 
-        .grid-item-button[data-id="1"] {
-            background-color: rgba(0, 0, 255, 0.8);
-            color: white;
+    /* Główny kontener interfejsu kasjera */
+    .cashier-interface {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1; /* Pozwala main-content na rozciąganie */
+        width: 100%;
+        max-width: 1900px; /* Ogranicz maksymalną szerokość */
+        margin: 0 auto; /* Wyśrodkuj kontener */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtelny cień */
+        background-color: var(--white-color);
+    }
+
+    /* Górny pasek (nagłówek) */
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-unit);
+        background-color: var(--dark-color);
+        color: var(--text-light);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+        .top-bar .info-left span,
+        .top-bar .info-center span,
+        .top-bar .info-right .btn {
+            margin-right: var(--spacing-unit);
         }
 
-            .grid-item-button[data-id="1"]:hover {
+    .time-display {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+
+    .date-small {
+        font-size: 0.8em;
+        opacity: 0.8;
+    }
+
+    .action-btn { /* Przyciski akcji w nagłówku */
+        background-color: var(--primary-color);
+        color: var(--white-color);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+        .action-btn:hover {
+            background-color: darken(var(--primary-color), 10%); /* Przyciemnij przy najechaniu (przykład, wymaga preprocesora lub innego sposobu) */
+            opacity: 0.9; /* Alternatywnie zmień przezroczystość */
+        }
+
+    /* Style dla przycisku "Zmień cenę paliwa" z Bootstrapa */
+    .top-bar .btn-primary {
+        margin-right: var(--spacing-unit);
+    }
+
+
+    /* Główna zawartość (panele) */
+    .main-content {
+        display: flex;
+        flex-grow: 1;
+        padding: var(--spacing-unit);
+        gap: var(--spacing-unit); /* Odstęp między panelami */
+    }
+
+    /* Panele - wspólne style */
+    .left-panel,
+    .middle-panel,
+    .right-panel {
+        padding: var(--spacing-unit);
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        background-color: var(--white-color);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtelny wewnętrzny cień */
+        overflow-y: auto; /* Dodaj scroll, jesli zawartosc bedzie wieksza */
+    }
+
+    .left-panel {
+        flex: 1.5; /* Proporcja szerokości */
+        min-width: 250px; /* Minimalna szerokość, aby uniknąć zgniecenia */
+    }
+
+    .middle-panel {
+        flex: 1; /* Proporcja szerokości */
+        min-width: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-unit);
+    }
+
+    .right-panel {
+        flex: 2; /* Proporcja szerokości */
+        min-width: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Grid dla przycisków dystrybutorów */
+    .css-grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Automatycznie dopasowuje kolumny, min 150px szerokosci */
+        gap: var(--spacing-unit);
+        padding: 0; /* Usun padding, bo panel ma juz padding */
+        border: none; /* Usun ramke, bo panel ma juz ramke */
+    }
+
+    /* Styl przycisku dystrybutora */
+    .grid-item-button {
+        /* ... (istniejące style) ... */
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+        /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
+
+        /* FuelId = 1: Zielony */
+        .grid-item-button[data-fuelid="1"] {
+            background-color: var(--success-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--success-color-darken10);
+        }
+
+            .grid-item-button[data-fuelid="1"]:hover {
+                background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
+            }
+
+        /* FuelId = 2: Niebieski */
+        .grid-item-button[data-fuelid="2"] {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--primary-color-darken10);
+        }
+
+            .grid-item-button[data-fuelid="2"]:hover {
                 background-color: rgb(0, 0, 255);
             }
 
-        .grid-item-button[data-id="2"] {
-            background-color: rgba(0, 128, 0, 0.8);
-            color: white; /* Zmień kolor tekstu na biały */
+        /* FuelId = 3: Ciemny/Szary */
+        .grid-item-button[data-fuelid="3"] {
+            background-color: var(--dark-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--dark-color-darken10);
         }
 
-            .grid-item-button[data-id="2"]:hover {
-                background-color: rgb(0, 128, 0);
-            }
-
-        .grid-item-button[data-id="3"] {
-            background-color: rgba(0, 0,0, 0.8);
-            color: white; /* Zmień kolor tekstu na biały */
-        }
-
-            .grid-item-button[data-id="3"]:hover {
+            .grid-item-button[data-fuelid="3"]:hover {
                 background-color: rgb(100, 100, 100);
             }
 
-        .grid-item-button:hover {
-            background-color: #e0e0e0;
+        /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
+        .grid-item-button.active-refueling {
+            border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
+            box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
         }
 
-        .grid-item-button.clicked {
-            background-color: #8bc34a; /* Zmieniony kolor po kliknięciu (zielony) */
-        }
 
-    .button-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
+    /* Style dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+    #selectedCustomerDetails.alert-info {
+        /* *** Zmieniono: background-color używa nowej zmiennej *** */
+        background-color: var(--info-color-lighten30);
+        border-color: var(--info-color);
+        color: var(--dark-color);
     }
 
+    #selectedCustomerDetails h4 {
+        color: var(--dark-color);
+    }
+
+
+    /* Style elementów wewnątrz przycisku */
     .distributor-name {
-        font-size: 1.2em;
+        font-size: 1.1em;
         font-weight: bold;
-        color: white;
-        align-content: flex-end;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        margin-bottom: 0.5em; /* Odstęp pod nazwą */
+        /* Kolor tekstu ustawiany w regułach data-fuelid */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtelny cień */
     }
 
-    .distributor-details {
-        display: flex;
-        flex-direction: column;
-        font-size: 14px;
+    .item-calculated-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        margin: auto 0; /* Wyśrodkuj pionowo */
+        /* Kolor tekstu ustawiany w regułach data-fuelid */
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     }
 
     .bottom-details {
@@ -815,15 +863,16 @@
         align-items: center;
         width: 100%;
         font-size: 0.9em;
-        color: #555;
+        margin-top: 0.5em; /* Odstęp nad szczegółami */
+        /* Kolor tekstu ustawiany w regułach data-fuelid */
     }
 
-        .bottom-details .amount-display, .bottom-details .price-display {
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        .bottom-details .amount-display,
+        .bottom-details .price-display {
             flex-basis: 50%;
-            padding-right: 5px;
+            padding: 0 5px;
             box-sizing: border-box;
-            color: white;
+            /* Kolor tekstu ustawiany w regułach data-fuelid */
         }
 
         .bottom-details .amount-display {
@@ -834,22 +883,196 @@
             text-align: right;
         }
 
-    .distributor-details span {
-        margin: 2px 0;
+
+    /* Style dla sekcji Produktów (middle-panel) */
+    .display-input-area {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-unit);
     }
 
-    .item-calculated-value {
-        font-size: 1.8em;
-        font-weight: bold;
-        color: red;
-        margin: auto 0;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    .item-details-preview {
+        padding: var(--spacing-unit);
+        border: 1px dashed var(--border-color);
+        border-radius: 0.25rem;
+        background-color: var(--light-color);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
-    .item-value {
+    #productDetails h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        font-size: 1.2em;
+        color: var(--primary-color);
+    }
+
+    #productDetails p {
+        margin: 0 0 0.3rem 0;
         font-size: 0.9em;
-        color: #555;
-        margin-top: 5px;
+    }
+
+    /* Style dla przycisków "Dodaj do zamówienia", "Usuń produkt" */
+    .middle-panel .action-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        font-size: 1em;
+    }
+
+
+    /* Style dla Sekcji Paragonu (right-panel) */
+    .receipt-header {
+        display: grid;
+        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dostosuj szerokości kolumn */
+        gap: 5px;
+        padding: 10px;
+        font-weight: bold;
+        border-bottom: 1px solid var(--dark-color);
+        margin-bottom: 5px;
+        color: var(--dark-color);
+    }
+
+    .receipt-items-container {
+        flex-grow: 1; /* Pozwala na rozciąganie listy pozycji */
+        overflow-y: auto; /* Dodaje scroll, jesli lista jest dluga */
+        padding-right: 5px; /* Dodatkowy padding, aby scrollbar nie zasłaniał treści */
+    }
+
+    .receipt-item {
+        display: grid;
+        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dopasuj do nagłówka */
+        gap: 5px;
+        padding: 8px 10px;
+        border-bottom: 1px dashed var(--border-color);
+        align-items: center;
+        font-size: 0.95em;
+    }
+
+        .receipt-item span {
+            overflow: hidden;
+            text-overflow: ellipsis; /* Dodaje ... jesli tekst jest za dlugi */
+            white-space: nowrap; /* Zapobiega zawijaniu tekstu */
+        }
+
+    .receipt-summary {
+        margin-top: 10px;
+        padding: 10px;
+        border-top: 2px solid var(--dark-color);
+        font-size: 1.4em;
+        font-weight: bold;
+        text-align: right;
+        color: var(--dark-color);
+    }
+
+    .total-amount-value {
+        color: var(--success-color); /* Kolor dla kwoty do zapłaty */
+    }
+
+    /* Opcje płatności */
+    .payment-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Dopasuj do dostępnej szerokości */
+        gap: var(--spacing-unit);
+        margin-top: var(--spacing-unit);
+    }
+
+    .payment-btn {
+        padding: 1rem;
+        font-size: 1.1em;
+        font-weight: bold;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease, opacity 0.2s ease;
+        color: var(--white-color);
+        background-color: var(--primary-color); /* Domyślny kolor */
+    }
+
+        .payment-btn.large-btn {
+            grid-column: span 1; /* Domyślnie zajmuje jedną kolumnę w siatce */
+            /* Możesz dodać media query, aby zajmowały więcej kolumn na mniejszych ekranach */
+        }
+
+    #btnCash {
+        background-color: var(--success-color);
+    }
+    /* Zielony dla GOTÓWKA */
+    #btnCard {
+        background-color: var(--info-color);
+    }
+    /* Błękitny dla KARTA */
+    #btnInvoice {
+        background-color: var(--secondary-color);
+    }
+    /* Szary dla FAKTURA */
+
+
+    .payment-btn:hover {
+        opacity: 0.9;
+    }
+
+
+    /* Dolny pasek (stopka) */
+    .bottom-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-unit);
+        background-color: var(--dark-color);
+        color: var(--text-light);
+        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        font-size: 0.9em;
+    }
+
+    .logout-button .btn-danger { /* Styl przycisku Wyloguj (z Bootstrapa) */
+        padding: 0.5rem 1rem;
+    }
+
+    /* Styl dla przycisku "Losuj Nowe Tankowania" */
+    #btnRandomizeRefuelings {
+        margin-bottom: var(--spacing-unit);
+    }
+
+
+    /* Style specyficzne dla Modali */
+    /* Bootstrap domyślnie styluje modale, ale możesz dodać własne poprawki */
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Poprawka dla Select2 w modalu (jeśli nadal używasz Select2 dla produktów) */
+    .modal .select2-container {
+        width: 100% !important; /* Wymuś pełną szerokość w modalu */
+    }
+
+    /* Styl dla listy wyników wyszukiwania klientów bez Select2 */
+    #customerSearchResults.list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+        #customerSearchResults.list-group-item:hover {
+            background-color: var(--light-color);
+        }
+
+    /* Styl dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+    #selectedCustomerDetails.alert-info {
+        background-color: lighten(var(--info-color), 30%);
+        border-color: var(--info-color);
+        color: var(--dark-color);
+    }
+
+    #selectedCustomerDetails h4 {
+        color: var(--dark-color);
     }
 </style>
-

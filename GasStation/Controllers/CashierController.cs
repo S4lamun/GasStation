@@ -5,16 +5,17 @@ using System.Web.Mvc;
 
 // ... inne using ...
 
- // Upewnij się, że dostęp do tego kontrolera wymaga logowania
+// Upewnij się, że dostęp do tego kontrolera wymaga logowania
+
 public class CashierController : Controller
 {
 	private readonly EmployeeService _employeeService;
 	// ... inne serwisy, jeśli są wstrzykiwane ...
 
-	public CashierController()
-	{
+	//public CashierController()
+	//{
 	
-	}
+	//}
 
 	public CashierController(EmployeeService employeeService /*, inne serwisy */)
 	{
@@ -24,7 +25,7 @@ public class CashierController : Controller
 
 	public ActionResult Index()
 	{
-		string cashierName = "N/A"; // Domyślna wartość
+		string cashierName = "N/A!!"; // Domyślna wartość
 		if (User.Identity.IsAuthenticated)
 		{
 			string login = User.Identity.Name; // Pobierz login zalogowanego użytkownika
@@ -37,7 +38,7 @@ public class CashierController : Controller
 			{
 				// Sytuacja awaryjna: użytkownik jest zalogowany, ale nie znaleziono go w bazie danych
 				// Możesz tu dodać logowanie błędu lub specjalną obsługę
-				cashierName = "Error: Cashier not found";
+				cashierName = "Error: Cashier not found i elo";
 			}
 		}
 		ViewBag.CurrentCashierFullName = cashierName;
@@ -73,7 +74,40 @@ public class CashierController : Controller
 	}
 	public ActionResult Cashier_view()
 	{
-		return View(); // domyślnie szuka pliku Views/Cashier/Cashier_view.cshtml
+		// Dodaj logikę pobierania imienia i nazwiska kasjera
+		string cashierName = "N/A"; // Domyślna wartość
+		EmployeeDTO loggedInEmployee = Session["LoggedInEmployee"] as EmployeeDTO;
+		if (loggedInEmployee != null)
+		{
+			string login = User.Identity.Name; // Pobierz login zalogowanego użytkownika
+			System.Diagnostics.Trace.TraceInformation($"Zalogowany login: {login}");
+
+			EmployeeDTO cashier = new EmployeeDTO();
+			cashier = _employeeService.GetEmployeeByLogin(login);
+		
+			if (cashier != null)
+			{
+				cashierName = $"{cashier.Name} {cashier.Surname}"; // Połącz imię i nazwisko
+			}
+			else
+			{
+				// Sytuacja awaryjna: użytkownik jest zalogowany, ale nie znaleziono go w bazie danych
+				cashierName = "Error: Cashier not found wiec blad";
+				
+				// Tutaj warto rozważyć logowanie błędu lub nawet wylogowanie użytkownika
+			}
+		}
+		// *** Ustaw ViewBag.CurrentCashierFullName, aby był dostępny w widoku Cashier_view ***
+		ViewBag.CurrentCashierFullName = cashierName;
+
+		// Możesz tutaj dodać inną logikę potrzebną tylko dla widoku kasjera,
+		// np. ładowanie danych dla przycisków produktów (jeśli nie są statyczne)
+		// lub przygotowanie danych dla modali (jeśli nie są ładowane AJAXem).
+		// Jeśli Twój widok Cashier_view używa modelu, musisz go tutaj utworzyć i przekazać.
+
+		// Zwróć widok Cashier_view.cshtml
+		return View();
 	}
+
 	// ... inne akcje kontrolera ...
 }
