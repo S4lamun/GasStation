@@ -81,14 +81,23 @@ namespace GasStation.Controllers
         }
 
 
-        // --- Inne akcje Home Controllera (jeśli istnieją) ---
-        // public ActionResult About() { ... }
-        // public ActionResult Contact() { ... }
+		// --- Inne akcje Home Controllera (jeśli istnieją) ---
+		// public ActionResult About() { ... }
+		// public ActionResult Contact() { ... }
 
-        // Optional: Akcja błędu, jeśli nie masz jej w Shared
-        // public ActionResult Error()
-        // {
-        //     return View();
-        // }
-    }
+		// Optional: Akcja błędu, jeśli nie masz jej w Shared
+		// public ActionResult Error()
+		// {
+		//     return View();
+		// }
+		public ActionResult Logout()
+		{
+			// TODO: W prawdziwej aplikacji, tutaj nastąpiłoby wylogowanie z systemu uwierzytelniania
+			// np. FormsAuthentication.SignOut();
+			// lub odpowiednia metoda ASP.NET Identity
+
+			// Na razie po prostu przekierowujemy na stronę główną/logowania
+			return RedirectToAction("Index", "Home"); // Przekieruj do akcji Index w HomeController
+		}
+	}
 }

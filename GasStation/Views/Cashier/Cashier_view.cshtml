@@ -141,7 +141,11 @@
         <span>F3 PALIWA</span>
         <span>F4 KLIENCI</span>
         <span>...</span>
-        <span id="btnLogout" class="logout-button">WYLOGUJ</span>
+       
+        <span class="logout-button">
+            @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
+            @Html.ActionLink("Wyloguj", "Logout", "Home", null, new { @class = "btn btn-danger" }) @* Możesz dostosować klasy CSS *@
+        </span>
     </footer>
 </div>
 <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
