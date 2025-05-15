@@ -265,18 +265,66 @@
 
                 fuelButtons.forEach(b => {
                     b.addEventListener('click', () => {
-                        const val = parseNum(b.dataset.value);
+                        const fuelId = b.dataset.id;
+                        const fuelName = b.dataset.fuelName || `Paliwo ${fuelId}`;
+                        const amount = parseNum(b.dataset.amount);
+                        const price = parseNum(b.dataset.price);
+                        const value = parseNum(b.dataset.value);
                         const isActive = b.classList.contains('active-refueling');
 
                         b.classList.toggle('active-refueling');
 
                         if (b.classList.contains('active-refueling') && !isActive) {
-                            currentTotal += val;
+                            currentTotal += value;
+                            addFuelToReceipt(fuelId, fuelName, amount, price, value);
                         } else if (!b.classList.contains('active-refueling') && isActive) {
-                            currentTotal -= val;
+                            currentTotal -= value;
+                            removeFuelFromReceipt(fuelId);
                         }
                         updateTotal();
                     });
+                });
+            }
+
+            function addFuelToReceipt(fuelId, fuelName, amount, price, value) {
+                const div = document.createElement('div');
+                div.className = 'receipt-item';
+                div.dataset.fuelId = fuelId;
+                div.innerHTML = `
+        <span>${receiptItems.children.length + 1}</span>
+        <span>${fuelName}</span>
+        <span>${fmtPLN(amount)} L</span>
+        <span>${fmtPLN(price)}</span>
+        <span>${fmtPLN(value)}</span>
+        <button class="btn-delete-item">X</button>
+    `;
+
+                div.querySelector('.btn-delete-item').addEventListener('click', () => {
+                    currentTotal -= value;
+                    updateTotal();
+                    div.remove();
+                    // Znajdź odpowiedni przycisk paliwa i zdeaktywuj go
+                    const fuelButton = fuelButtons.find(b => b.dataset.id === fuelId);
+                    if (fuelButton) {
+                        fuelButton.classList.remove('active-refueling');
+                    }
+                });
+
+                receiptItems.append(div);
+            }
+
+            function removeFuelFromReceipt(fuelId) {
+                const items = [...receiptItems.children];
+                const itemToRemove = items.find(i => i.dataset.fuelId === fuelId);
+                if (itemToRemove) {
+                    itemToRemove.remove();
+                }
+
+                // Ponownie numerujemy pozycje
+                items.forEach((item, index) => {
+                    if (item.querySelector('span')) {
+                        item.querySelector('span').textContent = index + 1;
+                    }
                 });
             }
 
@@ -284,19 +332,18 @@
                 fuelButtons.forEach((b, index) => {
                     const randomFuelId = Math.floor(Math.random() * 3) + 1;
                     const fuelName = fuelTypesMap[randomFuelId]; // Teraz używa pełnej nazwy
-
-                    // Reszta funkcji pozostaje bez zmian...
                     const price = fuelPrices[randomFuelId] || 5.50;
                     const amount = (Math.random() * 39 + 1).toFixed(2);
                     const value = parseFloat(amount) * price;
 
+                    // Ustawiamy wszystkie potrzebne atrybuty data-
                     b.dataset.id = randomFuelId;
                     b.dataset.fuelName = fuelName;
                     b.dataset.amount = amount;
                     b.dataset.price = price.toFixed(2);
                     b.dataset.value = value.toFixed(2);
 
-                    // Tutaj zmiana - wyświetlamy pełną nazwę paliwa
+                    // Aktualizujemy wyświetlane wartości
                     text(b, '.distributor-name', fuelName);
                     text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
                     text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
@@ -336,18 +383,23 @@
             function initRandomFuel() {
                 if (!btns.randomFuel) return;
                 btns.randomFuel.addEventListener('click', () => {
-                    fuelButtons.forEach(b => {
-                        if (b.classList.contains('active-refueling')) {
-                            currentTotal -= parseNum(b.dataset.value);
-                            b.classList.remove('active-refueling');
+                    // Usuń wszystkie pozycje paliw z paragonu
+                    [...receiptItems.children].forEach(item => {
+                        if (item.dataset.fuelId) {
+                            currentTotal -= parseNum(item.children[4].textContent.replace(',', '.'));
+                            item.remove();
                         }
                     });
 
+                    // Zresetuj przyciski paliw
+                    fuelButtons.forEach(b => {
+                        b.classList.remove('active-refueling');
+                    });
+
+                    // Losuj nowe wartości
                     fuelButtons.forEach((b, index) => {
                         const randomFuelId = Math.floor(Math.random() * 3) + 1;
-                        const fuelName = fuelTypesMap[randomFuelId]; // Pełna nazwa paliwa
-
-                        // Reszta kodu pozostaje bez zmian...
+                        const fuelName = fuelTypesMap[randomFuelId];
                         const price = fuelPrices[randomFuelId];
                         if (!price) {
                             console.error(`Brak ceny dla paliwa ID: ${randomFuelId}`);
@@ -363,7 +415,6 @@
                         b.dataset.price = price.toFixed(2);
                         b.dataset.value = value.toFixed(2);
 
-                        // Wyświetl pełną nazwę paliwa
                         text(b, '.distributor-name', fuelName);
                         text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
                         text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
@@ -446,13 +497,15 @@
             }
 
             function removeSelected() {
-                if (!selectedProduct) return alert('Wybierz produkt, który chcesz usunąć z zamówienia.');
-                [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
-                    .forEach(i => {
-                        currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
-                        updateTotal();
-                        i.remove();
-                    });
+                if (selectedProduct) {
+                    [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
+                        .forEach(i => {
+                            currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
+                            updateTotal();
+                            i.remove();
+                        });
+                }
+                // Dodatkowo można dodać obsługę usuwania wybranego paliwa jeśli potrzebne
             }
 
             function initCustomerModal() {
