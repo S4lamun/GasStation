@@ -61,8 +61,7 @@
                             data-id="@item.FuelId"
                             data-amount="@item.Amount"
                             data-price="@item.PriceAtSale"
-                            data-value="@(item.Amount * item.PriceAtSale)"
-                             data-fuel-name="@item.FuelName">
+                            data-value="@(item.Amount * item.PriceAtSale)">
 
                         <div class="distributor-name">@item.FuelName</div>
 
@@ -116,8 +115,8 @@
                 <!-- Produkty będą tutaj dynamicznie dodawane -->
             </div>
 
-   
-          
+
+
             <div class="receipt-summary">
                 <div>Do zapłaty (PLN): <span id="totalAmount" class="total-amount-value">0.00</span></div>
             </div>
@@ -126,7 +125,7 @@
                 <button class="payment-btn large-btn" id="btnCash">GOTÓWKA</button>
                 <button class="payment-btn large-btn" id="btnCard">KARTA</button>
                 <button class="payment-btn" id="btnInvoice">FAKTURA</button>
-         
+
             </div>
         </section>
     </main>
@@ -172,242 +171,122 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        let currentTotal = 0;
-        const totalAmount = id('totalAmount');
-        const productSelect = id('productSelect');
-        const receiptItems = id('receiptItems');
-        const timeDisplay = id('timeDisplay');
-        const addCustomerModal = id('addCustomerModal');
-        const addCustomerForm = id('ajaxAddCustomerForm');
-        const customerAlert = id('addCustomerModalAlertPlaceholder');
-        const changeFuelModal = id('changeFuelPriceModal');
-        const fuelSelectModalDropdown = id('fuelSelect'); // Corrected ID to match HTML
-        const newPriceInput = id('priceInput'); // Corrected ID to match HTML
-        const priceAlert = id('changePriceModalAlertPlaceholder'); // Need to add this div in your HTML modal
-        // const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier'); // This element is not in the provided HTML
-
-        // Placeholder for employeeId, replace with actual logic to get it
-        const employeeId = 'UNKNOWN_EMPLOYEE_ID'; // <-- Get this from your application context
+@section Scripts {
+    {
 
 
-        const btns = {
-            add: id('btnAddToOrder'),
-            remove: id('btnRemoveProduct'),
-            randomFuel: id('btnRandomizeRefuelings'),
-            saveCustomer: id('btnSaveCustomerAjax'),
-            // Assuming you'll add an ID to the save price button in the modal footer
-            savePrice: document.querySelector('#changeFuelPriceModal .modal-footer .btn-success'), // Get the Save button in modal
-            cash: id('btnCash'),
-            card: id('btnCard'),
-            invoice: id('btnInvoice')
-        };
-
-        const fuelButtons = [...document.querySelectorAll('.grid-item-button')];
-        let fuelPrices = {};
-        let fuelTypesMap =
-        {
-            //1: "Benzyna",
-            //2: "Diesel",
-            // 3: "Gaz"
-        }; 
-        let products = [];
-        let selectedProduct = null;
-
-        // Utility functions
-        function id(name) { return document.getElementById(name); }
-        function dataset(el, key) { return el && el.dataset[key] || null; }
-        function parseNum(str) {
-            // Handle comma as decimal separator
-            const cleanedStr = str ? str.replace(',', '.') : '0';
-            const n = parseFloat(cleanedStr);
-            return isNaN(n) ? 0 : n;
-        }
-        function fmtPLN(n) { return parseFloat(n).toFixed(2).replace('.', ','); } // Ensure n is treated as a number
-        function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
-        function alertIn(el, msg, type) { if (el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
-        function text(parent, sel, t) {
-            const e = parent.querySelector(sel);
-            if (e) e.textContent = t;
-        }
-        function updateTime() {
-            const now = new Date();
-            timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) +
-                ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
-        }
-
-
-        // --- New/Modified functions ---
-
-        // Function to fetch current fuel prices
-        function fetchPrices() {
-            return fetch('/Fuel/GetCurrentPricesJson') // Assuming this endpoint exists and returns [{ FuelId: ..., Price: ... }, ...]
-                .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch prices'))
-                .then(data => {
-                    fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {});
-                })
-                .catch(err => console.error('Error fetching fuel prices:', err));
-        }
-
-        // Function to fetch fuel types (ID and Name)
-        // Assuming /Fuel/GetFuelTypesJson returns [{ id: 1, text: "Benzyna" }, ...] for Select2 compatibility
-        function fetchFuelTypes() {
-            return fetch('/Fuel/GetAllFuelsJson')
-                .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch fuel types'))
-                .then(data => {
-                    // Mapowanie ID na nazwy paliw
-                    fuelTypesMap = {
-                        1: "Benzyna",
-                        2: "Diesel",
-                        3: "Gaz"
-                    };
-                    return data;
-                })
-                .catch(err => {
-                    console.error('Error fetching fuel types:', err);
-                    // Domyślne wartości jeśli wystąpi błąd
-                    fuelTypesMap = {
-                        1: "Benzyna",
-                        2: "Diesel",
-                        3: "Gaz"
-                    };
-                    return fuelTypesMap;
-                });
-        }
-
-
-        // Function to apply color to a single button based on fuel type
-        function applyFuelColorsToButton(button) {
-            const fid = parseNum(button.dataset.id);
-            const fuelName = fuelTypesMap[fid] || '';
-
-            // Remove all fuel-related classes
-            button.classList.forEach(className => {
-                if (className.startsWith('fuel-type-')) {
-                    button.classList.remove(className);
-                }
-            });
-
-            // Add appropriate class based on fuel type
-            if (fid === 1) { // Benzyna
-                button.classList.add('fuel-type-benzyna');
-            } else if (fid === 2) { // Diesel
-                button.classList.add('fuel-type-diesel');
-            } else if (fid === 3) { // Gaz
-                button.classList.add('fuel-type-gaz');
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentTotal = 0;
+            const totalAmount = id('totalAmount');
+            const productSelect = id('productSelect');
+            const receiptItems = id('receiptItems');
+            const timeDisplay = id('timeDisplay');
+            const addCustomerModal = id('addCustomerModal');
+            const addCustomerForm = id('ajaxAddCustomerForm');
+            const customerAlert = id('addCustomerModalAlertPlaceholder');
+            const changeFuelModal = id('changeFuelPriceModal');
+            const fuelTypeSelect = id('fuelTypeSelectDropdown');
+            const newPriceInput = id('newPriceInput');
+            const priceAlert = id('changePriceModalAlertPlaceholder');
+            const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier');
+            const fuelTypesMap = {
+                1: "Benzyna",
+                2: "Diesel",
+                3: "Gaz"
             }
-        }
 
+            const btns = {
+                add: id('btnAddToOrder'),
+                remove: id('btnRemoveProduct'),
+                randomFuel: id('btnRandomizeRefuelings'),
+                saveCustomer: id('btnSaveCustomerAjax'),
+                savePrice: id('btnSaveFuelPrice'),
+                cash: id('btnCash'),
+                card: id('btnCard'),
+                invoice: id('btnInvoice')
+            };
 
-        // --- Initialization ---
+            const fuelButtons = [...document.querySelectorAll('.grid-item-button')];
+            let fuelPrices = {};
+            let products = [];
+            let selectedProduct = null;
 
-        // Use Promise.all to ensure both prices and fuel types are loaded before initializing components
-        Promise.all([fetchPrices(), fetchFuelTypes()])
-            .then(() => {
-                // Now that fuelPrices and fuelTypesMap are populated, initialize dependent components
-                initFuelButtons(); // This will now apply colors
-                initRandomFuel(); // This already works for all buttons and doesn't need color logic inside
-                initProducts();
-                initCustomerModal();
-                initChangeFuelModal(); // This will use the fetched fuel types for Select2
-                initPayments();
-                initSelect2(); // For product select
-                updateTotal(); // Initial total (should be 0 unless items are marked active by default)
-            })
-            .catch(error => {
-                console.error("Failed to initialize cashier:", error);
-                // Optionally display a user-friendly error message
-            });
+            fetchPrices();
+            fetchProducts();
+            initFuelButtons();
+            initRandomFuel();
+            initProducts();
+            initCustomerModal();
+            initChangeFuelModal();
+            initPayments();
+            initSelect2();
+            updateTime();
+            setInterval(updateTime, 60000);
 
+            function id(name) { return document.getElementById(name); }
+            function dataset(el, key) { return el && el.dataset[key] || null; }
+            function parseNum(str) { const n = parseFloat(str.replace(',', '.')); return isNaN(n) ? 0 : n; }
+            function fmtPLN(n) { return n.toFixed(2).replace('.', ','); }
+            function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
+            function alertIn(el, msg, type) { if (el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
 
-        // fetchProducts remains the same
-        function fetchProducts() {
-            return fetch('/Product/GetAllProductsJson')
-                .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch products'))
-                .then(data => {
-                    products = data;
-                    populateProductDropdown();
-                })
-                .catch(err => console.error('Error fetching products:', err));
-        }
+            function fetchPrices() {
+                fetch('/Fuel/GetCurrentPricesJson').then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {}));
+            }
 
-        // populateProductDropdown remains the same
+            function fetchProducts() {
+                fetch('/Product/GetAllProductsJson')
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        products = data;
+                        populateProductDropdown();
+                    })
+                    .catch(err => console.error('Error fetching products:', err));
+            }
 
-        // initFuelButtons now applies colors when buttons are set up
-        function initFuelButtons() {
-            // Najpierw zastosuj losowanie paliw przy inicjalizacji
-            randomizeFuelsOnLoad();
+            function populateProductDropdown() {
+                if (!productSelect) return;
 
-            fuelButtons.forEach(b => {
-                b.addEventListener('click', () => {
-                    const val = parseNum(b.dataset.value);
-                    const isActive = b.classList.contains('active-refueling');
+                productSelect.innerHTML = '<option value="">-- Wyszukaj produkt --</option>';
 
-                    b.classList.toggle('active-refueling');
-
-                    if (b.classList.contains('active-refueling') && !isActive) {
-                        currentTotal += val;
-                    } else if (!b.classList.contains('active-refueling') && isActive) {
-                        currentTotal -= val;
-                    }
-                    updateTotal();
+                products.forEach(p => {
+                    // Uwzględniamy strukturę ProductDTO z właściwościami ProductId, Name i Price
+                    const option = new Option(`${p.Name} (${fmtPLN(p.Price)} zł)`, p.ProductId);
+                    option.dataset.product = JSON.stringify(p);
+                    productSelect.add(option);
                 });
-            });
-        }
+            }
 
-        function randomizeFuelsOnLoad() {
-            fuelButtons.forEach((b, index) => {
-                const randomFuelId = Math.floor(Math.random() * 3) + 1;
-                const fuelName = fuelTypesMap[randomFuelId]; // Teraz używa pełnej nazwy
+            function initFuelButtons() {
+                // Najpierw zastosuj losowanie paliw przy inicjalizacji
+                randomizeFuelsOnLoad();
 
-                // Reszta funkcji pozostaje bez zmian...
-                const price = fuelPrices[randomFuelId] || 5.50;
-                const amount = (Math.random() * 39 + 1).toFixed(2);
-                const value = parseFloat(amount) * price;
-
-                b.dataset.id = randomFuelId;
-                b.dataset.fuelName = fuelName;
-                b.dataset.amount = amount;
-                b.dataset.price = price.toFixed(2);
-                b.dataset.value = value.toFixed(2);
-
-                // Tutaj zmiana - wyświetlamy pełną nazwę paliwa
-                text(b, '.distributor-name', fuelName);
-                text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
-                text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
-                text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
-
-                applyFuelColorsToButton(b);
-            });
-        }
-        
-
-        // initRandomFuel remains largely the same, removes active state and recalculates values
-        // It doesn't need to re-apply colors because the fuel type doesn't change, only the amount/value.
-        // The colors are applied once during initFuelButtons based on the FuelId.
- 
-        function initRandomFuel() {
-            if (!btns.randomFuel) return;
-            btns.randomFuel.addEventListener('click', () => {
                 fuelButtons.forEach(b => {
-                    if (b.classList.contains('active-refueling')) {
-                        currentTotal -= parseNum(b.dataset.value);
-                        b.classList.remove('active-refueling');
-                    }
-                });
+                    b.addEventListener('click', () => {
+                        const val = parseNum(b.dataset.value);
+                        const isActive = b.classList.contains('active-refueling');
 
+                        b.classList.toggle('active-refueling');
+
+                        if (b.classList.contains('active-refueling') && !isActive) {
+                            currentTotal += val;
+                        } else if (!b.classList.contains('active-refueling') && isActive) {
+                            currentTotal -= val;
+                        }
+                        updateTotal();
+                    });
+                });
+            }
+
+            function randomizeFuelsOnLoad() {
                 fuelButtons.forEach((b, index) => {
                     const randomFuelId = Math.floor(Math.random() * 3) + 1;
-                    const fuelName = fuelTypesMap[randomFuelId]; // Pełna nazwa paliwa
+                    const fuelName = fuelTypesMap[randomFuelId]; // Teraz używa pełnej nazwy
 
-                    // Reszta kodu pozostaje bez zmian...
-                    const price = fuelPrices[randomFuelId];
-                    if (!price) {
-                        console.error(`Brak ceny dla paliwa ID: ${randomFuelId}`);
-                        return;
-                    }
-
+                    // Reszta funkcji pozostaje bez zmian...
+                    const price = fuelPrices[randomFuelId] || 5.50;
                     const amount = (Math.random() * 39 + 1).toFixed(2);
                     const value = parseFloat(amount) * price;
 
@@ -417,7 +296,7 @@
                     b.dataset.price = price.toFixed(2);
                     b.dataset.value = value.toFixed(2);
 
-                    // Wyświetl pełną nazwę paliwa
+                    // Tutaj zmiana - wyświetlamy pełną nazwę paliwa
                     text(b, '.distributor-name', fuelName);
                     text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
                     text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
@@ -425,140 +304,249 @@
 
                     applyFuelColorsToButton(b);
                 });
+            }
 
+            function fetchFuelTypes() {
+                return fetch('/Fuel/GetAllFuelsJson')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch fuel types'))
+                    .then(data => {
+                        // Mapowanie ID na nazwy paliw
+                        fuelTypesMap = {
+                            1: "Benzyna",
+                            2: "Diesel",
+                            3: "Gaz"
+                        };
+                        return data;
+                    })
+                    .catch(err => {
+                        console.error('Error fetching fuel types:', err);
+                        // Domyślne wartości jeśli wystąpi błąd
+                        fuelTypesMap = {
+                            1: "Benzyna",
+                            2: "Diesel",
+                            3: "Gaz"
+                        };
+                        return fuelTypesMap;
+                    });
+            }
+
+
+
+
+            function initRandomFuel() {
+                if (!btns.randomFuel) return;
+                btns.randomFuel.addEventListener('click', () => {
+                    fuelButtons.forEach(b => {
+                        if (b.classList.contains('active-refueling')) {
+                            currentTotal -= parseNum(b.dataset.value);
+                            b.classList.remove('active-refueling');
+                        }
+                    });
+
+                    fuelButtons.forEach((b, index) => {
+                        const randomFuelId = Math.floor(Math.random() * 3) + 1;
+                        const fuelName = fuelTypesMap[randomFuelId]; // Pełna nazwa paliwa
+
+                        // Reszta kodu pozostaje bez zmian...
+                        const price = fuelPrices[randomFuelId];
+                        if (!price) {
+                            console.error(`Brak ceny dla paliwa ID: ${randomFuelId}`);
+                            return;
+                        }
+
+                        const amount = (Math.random() * 39 + 1).toFixed(2);
+                        const value = parseFloat(amount) * price;
+
+                        b.dataset.id = randomFuelId;
+                        b.dataset.fuelName = fuelName;
+                        b.dataset.amount = amount;
+                        b.dataset.price = price.toFixed(2);
+                        b.dataset.value = value.toFixed(2);
+
+                        // Wyświetl pełną nazwę paliwa
+                        text(b, '.distributor-name', fuelName);
+                        text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
+                        text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
+                        text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
+
+                        applyFuelColorsToButton(b);
+                    });
+
+                    updateTotal();
+                });
+            }
+
+            function applyFuelColorsToButton(button) {
+                const fid = parseNum(button.dataset.id);
+                const fuelName = fuelTypesMap[fid] || '';
+
+                // Remove all fuel-related classes
+                button.classList.forEach(className => {
+                    if (className.startsWith('fuel-type-')) {
+                        button.classList.remove(className);
+                    }
+                });
+
+                // Add appropriate class based on fuel type
+                if (fid === 1) { // Benzyna
+                    button.classList.add('fuel-type-benzyna');
+                } else if (fid === 2) { // Diesel
+                    button.classList.add('fuel-type-diesel');
+                } else if (fid === 3) { // Gaz
+                    button.classList.add('fuel-type-gaz');
+                }
+            }
+
+
+
+            function initProducts() {
+                if (productSelect) {
+                    productSelect.addEventListener('change', () => {
+                        const selectedOption = productSelect.options[productSelect.selectedIndex];
+                        if (selectedOption && selectedOption.dataset.product) {
+                            try {
+                                selectedProduct = JSON.parse(selectedOption.dataset.product);
+                                displayProductDetails(selectedProduct);
+                            } catch (e) {
+                                console.error("Error parsing product data", e);
+                                selectedProduct = null;
+                                id('productDetails').innerHTML = '';
+                            }
+                        } else {
+                            selectedProduct = null;
+                            id('productDetails').innerHTML = '';
+                        }
+                    });
+                }
+
+                btns.add && btns.add.addEventListener('click', () => selectedProduct && addToReceipt(selectedProduct));
+                btns.remove && btns.remove.addEventListener('click', removeSelected);
+            }
+
+            function displayProductDetails(p) {
+                id('productDetails').innerHTML = p ?
+                    `<h3>Produkt: ${p.Name}</h3>
+           <p><strong>ID produktu:</strong> ${p.ProductId}</p>
+           <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
+            }
+
+            function addToReceipt(p) {
+                const div = document.createElement('div');
+                div.className = 'receipt-item';
+                div.dataset.productId = p.ProductId;
+                div.innerHTML = `<span>1</span><span>${p.Name}</span><span>1</span><span>${fmtPLN(p.Price)}</span><span>${fmtPLN(p.Price)}</span><button class="btn-delete-item">X</button>`;
+                div.querySelector('.btn-delete-item').addEventListener('click', () => {
+                    currentTotal -= p.Price;
+                    updateTotal();
+                    div.remove();
+                });
+                receiptItems.append(div);
+                currentTotal += p.Price;
                 updateTotal();
-            });
-        }
+            }
 
-        // initProducts remains the same
+            function removeSelected() {
+                if (!selectedProduct) return alert('Wybierz produkt, który chcesz usunąć z zamówienia.');
+                [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
+                    .forEach(i => {
+                        currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
+                        updateTotal();
+                        i.remove();
+                    });
+            }
 
-        // initCustomerModal remains the same
+            function initCustomerModal() {
+                btns.saveCustomer && btns.saveCustomer.addEventListener('click', () => {
+                    const fd = new FormData(addCustomerForm);
+                    fetch('/Customer/Create', {
+                        method: 'POST',
+                        body: fd,
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(r => r.json()).then(data => {
+                            if (data.success) {
+                                alertIn(customerAlert, data.message || 'Klient dodany', 'success');
+                                setTimeout(() => bootstrap.Modal.getInstance(addCustomerModal).hide(), 2000);
+                            } else {
+                                const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
+                                alertIn(customerAlert, msgs.join('<br>'), 'danger');
+                            }
+                        }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
+                });
+                addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
+            }
 
-        // initChangeFuelModal modified to use the pre-fetched fuelTypesMap for Select2
-        function initChangeFuelModal() {
-            changeFuelModal && changeFuelModal.addEventListener('shown.bs.modal', () => {
-                const fuelSelectDropdown = id('fuelSelect'); // Use the correct ID
-                if (fuelSelectDropdown && window.$) {
-                    // Prepare data for Select2 from the fetched fuelTypesMap
-                    const select2Data = Object.keys(fuelTypesMap).map(id => ({ id: id, text: fuelTypesMap[id] }));
-
-                    $(fuelSelectDropdown).select2({
+            function initChangeFuelModal() {
+                changeFuelModal && changeFuelModal.addEventListener('shown.bs.modal', () => {
+                    if (fuelTypeSelect && window.$) $(fuelTypeSelect).select2({
                         placeholder: '-- Wybierz paliwo --',
                         allowClear: true,
                         dropdownParent: $(changeFuelModal),
-                        data: select2Data // Use pre-fetched data
+                        ajax: {
+                            url: '/Fuel/GetFuelTypesJson',
+                            dataType: 'json',
+                            delay: 250,
+                            processResults: d => ({ results: d }),
+                            cache: true
+                        }
                     });
+                });
+                changeFuelModal && changeFuelModal.addEventListener('hidden.bs.modal', () => priceAlert.innerHTML = '');
+                btns.savePrice && btns.savePrice.addEventListener('click', () => {
+                    const fid = window.$ ? $(fuelTypeSelect).val() : null;
+                    const pr = parseNum(newPriceInput.value);
+                    if (!fid || pr <= 0 || !employeeId) return alertIn(priceAlert, 'Błąd danych', 'warning');
+                    const data = { FuelId: +fid, Price: pr, EmployeePesel: employeeId };
+                    fetch('/Fuel/UpdatePrice', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                        .then(r => r.ok ? r.json() : Promise.reject())
+                        .then(res => {
+                            if (res.success) {
+                                alertIn(priceAlert, res.message || 'Zapisano', 'success');
+                                setTimeout(() => {
+                                    bootstrap.Modal.getInstance(changeFuelModal).hide();
+                                    fetchPrices();
+                                }, 1500);
+                            } else {
+                                alertIn(priceAlert, res.message || 'Błąd', 'danger');
+                            }
+                        }).catch(() => alertIn(priceAlert, 'Błąd AJAX', 'danger'));
+                });
+            }
 
-                    // Enable the save button if fuel and price inputs are valid
-                    const updateSaveButtonState = () => {
-                        const selectedFuelId = $(fuelSelectDropdown).val();
-                        const newPrice = parseNum(newPriceInput.value);
-                        if (btns.savePrice) {
-                            btns.savePrice.disabled = !selectedFuelId || newPrice <= 0;
-                        }
-                    };
+            function initPayments() {
+                [{ btn: 'cash', msg: 'Płatność gotówką: ' }, { btn: 'card', msg: 'Płatność kartą: ' }, { btn: 'invoice', msg: 'Faktura na kwotę: ' }]
+                    .forEach(({ btn, msg }) => btns[btn] && btns[btn].addEventListener('click', () => alert(`${msg}${fmtPLN(currentTotal)} PLN`)));
+            }
 
-                    // Add event listeners to update the save button state
-                    $(fuelSelectDropdown).on('change', updateSaveButtonState);
-                    newPriceInput.addEventListener('input', updateSaveButtonState);
-                    // Initial state check
-                    updateSaveButtonState();
+            function initSelect2() {
+                if (window.$ && $.fn.select2) {
+                    $('#productSelect').select2({
+                        placeholder: '-- Wyszukaj produkt --',
+                        allowClear: true
+                    });
                 }
-            });
+            }
 
-            // Add event listener for the save button click
-            btns.savePrice && btns.savePrice.addEventListener('click', () => {
-                const fid = window.$ ? $('#fuelSelect').val() : null; // Use the correct ID
-                const pr = parseNum(newPriceInput.value);
-                // Assuming employeeId is correctly obtained elsewhere
-                // const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier');
-                // Using the placeholder employeeId defined earlier
-                const currentEmployeeId = employeeId;
+            function text(parent, sel, t) {
+                const e = parent.querySelector(sel);
+                if (e) e.textContent = t;
+            }
 
-                if (!fid || pr <= 0 || !currentEmployeeId) {
-                    alertIn(priceAlert, 'Błąd danych (wybierz paliwo, podaj cenę i upewnij się, że ID pracownika jest dostępne).', 'warning');
-                    return;
-                }
-
-                const data = { FuelId: +fid, Price: pr, EmployeePesel: currentEmployeeId };
-
-                fetch('/Fuel/UpdatePrice', { // Assuming this endpoint exists and handles price updates
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(data)
-                })
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to update price'))
-                    .then(res => {
-                        if (res.success) {
-                            alertIn(priceAlert, res.message || 'Zapisano', 'success');
-                            // Refresh prices and close modal after successful update
-                            fetchPrices().then(() => {
-                                // After prices are refreshed, re-apply colors in case price changes affect perception (optional)
-                                // applyFuelColors(); // Not needed if colors are based on type, not price.
-                                // If you want to update the displayed prices on the buttons immediately, you'd need to iterate fuelButtons here.
-                                fuelButtons.forEach(b => {
-                                    const fid = parseNum(b.dataset.id);
-                                    const newPrice = fuelPrices[fid] || 0;
-                                    const currentAmount = parseNum(b.dataset.amount);
-                                    const newValue = currentAmount * newPrice;
-
-                                    b.dataset.price = newPrice.toFixed(2);
-                                    b.dataset.value = newValue.toFixed(2);
-
-                                    text(b, '.price-display', `Cena: ${fmtPLN(newPrice)} zł/L`);
-                                    text(b, '.item-calculated-value', `${fmtPLN(newValue)} zł`);
-                                });
-                                // Recalculate total in case any active items had their price changed
-                                currentTotal = fuelButtons.reduce((sum, b) => {
-                                    if (b.classList.contains('active-refueling')) {
-                                        return sum + parseNum(b.dataset.value);
-                                    }
-                                    return sum;
-                                }, 0);
-                                updateTotal();
-
-                            }).catch(err => console.error('Error refreshing prices after update:', err));
-
-                            setTimeout(() => {
-                                bootstrap.Modal.getInstance(changeFuelModal).hide();
-                                // Reset modal form if needed
-                            }, 1500);
-                        } else {
-                            alertIn(priceAlert, res.message || 'Błąd', 'danger');
-                        }
-                    }).catch(err => alertIn(priceAlert, 'Błąd AJAX: ' + err, 'danger'));
-            });
-
-
-            changeFuelModal && changeFuelModal.addEventListener('hidden.bs.modal', () => {
-                priceAlert.innerHTML = ''; // Clear alerts on modal close
-                const fuelSelectDropdown = id('fuelSelect');
-                const newPriceInput = id('priceInput');
-                if (fuelSelectDropdown && window.$) $(fuelSelectDropdown).val(null).trigger('change'); // Clear select2
-                if (newPriceInput) newPriceInput.value = ''; // Clear price input
-                if (btns.savePrice) btns.savePrice.disabled = true; // Disable save button
-            });
-
-        }
-
-
-        // initPayments remains the same
-
-        // initSelect2 remains the same (for product select)
-
-        // updateTime remains the same
-
-        // Ensure priceAlert placeholder exists in the HTML modal
-        // Add <div id="changePriceModalAlertPlaceholder" class="mt-3"></div> inside the modal body
-        // e.g., right before the </form> tag or after the form.
-
-
-    });
-</script>
+            function updateTime() {
+                const now = new Date();
+                timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) +
+                    ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
+            }
+        });
+    </script>
     }}
 
 <div class="modal fade" id="changeFuelPriceModal" tabindex="-1" aria-labelledby="changeFuelPriceModalLabel" aria-hidden="true">
@@ -575,9 +563,10 @@
                         <label for="fuelSelect" class="form-label">Wybierz paliwo</label>
                         <select id="fuelSelect" class="form-select">
                             <option selected disabled>-- wybierz paliwo --</option>
-                            <option>Benzyna </option>
-                            <option>Diesel (ON) </option>
-                            <option>Gaz (LPG) </option>
+                            <option>Benzyna 95 (D1)</option>
+                            <option>Benzyna 98 (D2)</option>
+                            <option>ON (D3)</option>
+                            <option>LPG (D4)</option>
                         </select>
                     </div>
 
@@ -607,7 +596,7 @@
     </div>
 </div>
 <style>
-   
+
     :root {
         --primary-color: #007bff;
         --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
@@ -705,6 +694,25 @@
         margin-right: var(--spacing-unit);
     }
 
+    .fuel-type-benzyna {
+        background-color: #ffcc00; /* Yellow for Benzyna */
+        color: #333;
+    }
+
+    .fuel-type-diesel {
+        background-color: #6699cc; /* Blue for Diesel */
+        color: #fff;
+    }
+
+    .fuel-type-gaz {
+        background-color: #99cc66; /* Green for Gaz */
+        color: #333;
+    }
+
+    .grid-item-button.active-refueling {
+        border: 3px solid blue;
+        box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+    }
 
     /* Główna zawartość (panele) */
     .main-content {
@@ -746,26 +754,6 @@
         flex-direction: column;
     }
 
-    .fuel-type-benzyna {
-        background-color: #ffcc00; /* Yellow for Benzyna */
-        color: #333;
-    }
-
-    .fuel-type-diesel {
-        background-color: #6699cc; /* Blue for Diesel */
-        color: #fff;
-    }
-
-    .fuel-type-gaz {
-        background-color: #99cc66; /* Green for Gaz */
-        color: #333;
-    }
-
-    .grid-item-button.active-refueling {
-        border: 3px solid blue;
-        box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
-    }
-
     /* Grid dla przycisków dystrybutorów */
     .css-grid-container {
         display: grid;
@@ -785,51 +773,46 @@
 
         /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
 
-        .grid-item-button.fuel-type-benzyna {
-            background-color: #ffcc00; /* Example color for Gasoline */
-            color: #333; /* Adjust text color for readability */
+        /* FuelId = 1: Zielony */
+        .grid-item-button[data-fuelid="1"] {
+            background-color: var(--success-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--success-color-darken10);
         }
 
-        .grid-item-button.fuel-type-diesel-on {
-            background-color: #6699cc; /* Example color for Diesel */
-            color: #fff; /* Adjust text color for readability */
+            .grid-item-button[data-fuelid="1"]:hover {
+                background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
+            }
+
+        /* FuelId = 2: Niebieski */
+        .grid-item-button[data-fuelid="2"] {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--primary-color-darken10);
         }
 
-        .grid-item-button.fuel-type-gaz-lpg {
-            background-color: #99cc66; /* Example color for LPG */
-            color: #333; /* Adjust text color for readability */
+            .grid-item-button[data-fuelid="2"]:hover {
+                background-color: rgb(0, 0, 255);
+            }
+
+        /* FuelId = 3: Ciemny/Szary */
+        .grid-item-button[data-fuelid="3"] {
+            background-color: var(--dark-color);
+            color: var(--text-light);
+            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+            border-color: var(--dark-color-darken10);
         }
 
-        /* Add styles for other fuel IDs/names as needed */
-        .grid-item-button.fuel-type-1 { /* Fallback or if names aren't used in classes */
-            background-color: #ffcc00;
-        }
+            .grid-item-button[data-fuelid="3"]:hover {
+                background-color: rgb(100, 100, 100);
+            }
 
-        .grid-item-button.fuel-type-2 {
-            background-color: #6699cc;
-        }
-
-        .grid-item-button.fuel-type-3 {
-            background-color: #99cc66;
-        }
-
-        .grid-item-button.fuel-type-4 {
-            background-color: #cc99cc; /* Example color */
-        }
-
-        .grid-item-button.fuel-type-5 {
-            background-color: #ff6666; /* Example color */
-        }
-
-        .grid-item-button.fuel-type-6 {
-            background-color: #a0a0a0; /* Example color */
-        }
-
-
-        /* Optional: style for active state */
+        /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
         .grid-item-button.active-refueling {
-            border: 3px solid blue; /* Example active style */
-            box-shadow: 0 0 8px rgba(0, 0, 255, 0.5); /* Optional shadow */
+            border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
+            box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
         }
 
 
@@ -1082,3 +1065,4 @@
         color: var(--dark-color);
     }
 </style>
+
