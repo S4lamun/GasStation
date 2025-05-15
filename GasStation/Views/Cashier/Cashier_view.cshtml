@@ -291,13 +291,13 @@
                 div.className = 'receipt-item';
                 div.dataset.fuelId = fuelId;
                 div.innerHTML = `
-        <span>${receiptItems.children.length + 1}</span>
-        <span>${fuelName}</span>
-        <span>${fmtPLN(amount)} L</span>
-        <span>${fmtPLN(price)}</span>
-        <span>${fmtPLN(value)}</span>
-        <button class="btn-delete-item">X</button>
-    `;
+            <span>${receiptItems.children.length + 1}</span>
+            <span>${fuelName}</span>
+            <span>${fmtPLN(amount)} L</span>
+            <span>${fmtPLN(price)}</span>
+            <span>${fmtPLN(value)}</span>
+            <button class="btn-delete-item">X</button>
+        `;
 
                 div.querySelector('.btn-delete-item').addEventListener('click', () => {
                     currentTotal -= value;
@@ -477,8 +477,8 @@
             function displayProductDetails(p) {
                 id('productDetails').innerHTML = p ?
                     `<h3>Produkt: ${p.Name}</h3>
-           <p><strong>ID produktu:</strong> ${p.ProductId}</p>
-           <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
+               <p><strong>ID produktu:</strong> ${p.ProductId}</p>
+               <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
             }
 
             function addToReceipt(p) {
@@ -527,52 +527,116 @@
                         }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
                 });
                 addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
-            }
+            } // Correct closing brace for initCustomerModal
+
 
             function initChangeFuelModal() {
-                changeFuelModal && changeFuelModal.addEventListener('shown.bs.modal', () => {
-                    if (fuelTypeSelect && window.$) $(fuelTypeSelect).select2({
-                        placeholder: '-- Wybierz paliwo --',
-                        allowClear: true,
-                        dropdownParent: $(changeFuelModal),
-                        ajax: {
-                            url: '/Fuel/GetFuelTypesJson',
-                            dataType: 'json',
-                            delay: 250,
-                            processResults: d => ({ results: d }),
-                            cache: true
-                        }
-                    });
+                const changeFuelModal = document.getElementById('changeFuelPriceModal');
+                const fuelTypeSelect = document.getElementById('fuelTypeSelect'); // Zmienione z fuelTypeSelectDropdown
+                const newPriceInput = document.getElementById('newPriceInput');
+                const priceAlert = document.getElementById('changePriceModalAlertPlaceholder');
+                const btnSavePrice = document.getElementById('btnSaveFuelPrice');
+                const changeFuelPriceForm = document.getElementById('changeFuelPriceForm');
+
+                // Clear alerts when modal is hidden
+                changeFuelModal.addEventListener('hidden.bs.modal', () => {
+                    priceAlert.innerHTML = '';
+                    changeFuelPriceForm.reset();
                 });
-                changeFuelModal && changeFuelModal.addEventListener('hidden.bs.modal', () => priceAlert.innerHTML = '');
-                btns.savePrice && btns.savePrice.addEventListener('click', () => {
-                    const fid = window.$ ? $(fuelTypeSelect).val() : null;
-                    const pr = parseNum(newPriceInput.value);
-                    if (!fid || pr <= 0 || !employeeId) return alertIn(priceAlert, 'Błąd danych', 'warning');
-                    const data = { FuelId: +fid, Price: pr, EmployeePesel: employeeId };
-                    fetch('/Fuel/UpdatePrice', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify(data)
-                    })
-                        .then(r => r.ok ? r.json() : Promise.reject())
-                        .then(res => {
-                            if (res.success) {
-                                alertIn(priceAlert, res.message || 'Zapisano', 'success');
-                                setTimeout(() => {
-                                    bootstrap.Modal.getInstance(changeFuelModal).hide();
-                                    fetchPrices();
-                                }, 1500);
-                            } else {
-                                alertIn(priceAlert, res.message || 'Błąd', 'danger');
-                            }
-                        }).catch(() => alertIn(priceAlert, 'Błąd AJAX', 'danger'));
+
+                // Handle save button click
+                btnSavePrice.addEventListener('click', async () => {
+                    // Validate form
+                    if (!changeFuelPriceForm.checkValidity()) {
+                        changeFuelPriceForm.classList.add('was-validated');
+                        return;
+                    }
+
+                    const fuelId = fuelTypeSelect.value;
+                    const newPrice = parseFloat(newPriceInput.value);
+                    const employeePesel = "22334455667";//document.getElementById('currentEmployeeIdentifier')?.dataset.employeeIdentifier;
+
+                    if (!fuelId || !newPrice || !employeePesel) {
+                        showAlert(priceAlert, 'Wszystkie pola są wymagane', 'danger');
+                        return;
+                    }
+
+                    try {
+                        // Prepare data for API
+                        const data = {
+                            FuelId: parseInt(fuelId),
+                            Price: newPrice,
+                            EmployeePesel: employeePesel
+                        };
+
+                        // Call API to update price
+                        const response = await fetch('/Fuel/AddNewPrice', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            showAlert(priceAlert, 'Cena paliwa została zaktualizowana', 'success');
+
+                            // Refresh fuel prices and buttons
+                            await fetchPrices();
+                            updateFuelButtonsWithNewPrices();
+
+                            // Close modal after 2 seconds
+                            setTimeout(() => {
+                                bootstrap.Modal.getInstance(changeFuelModal).hide();
+                            }, 2000);
+                        } else {
+                            showAlert(priceAlert, result.message || 'Wystąpił błąd podczas aktualizacji ceny', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error updating fuel price:', error);
+                        showAlert(priceAlert, 'Wystąpił błąd podczas komunikacji z serwerem', 'danger');
+                    }
                 });
             }
+
+            function showAlert(container, message, type) {
+                container.innerHTML = `
+                     <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                     </div>`;
+            }
+
+            function updateFuelButtonsWithNewPrices() {
+                fuelButtons.forEach(button => {
+                    const fuelId = button.dataset.id;
+                    const currentPrice = fuelPrices[fuelId];
+
+                    if (currentPrice) {
+                        const amount = parseFloat(button.dataset.amount);
+                        const value = amount * currentPrice;
+
+                        button.dataset.price = currentPrice.toFixed(2);
+                        button.dataset.value = value.toFixed(2);
+
+                        // Update displayed price
+                        const priceDisplay = button.querySelector('.price-display');
+                        if (priceDisplay) {
+                            priceDisplay.textContent = `Cena: ${currentPrice.toFixed(2).replace('.', ',')} zł/L`;
+                        }
+
+                        // Update displayed value
+                        const valueDisplay = button.querySelector('.item-calculated-value');
+                        if (valueDisplay) {
+                            valueDisplay.textContent = `${value.toFixed(2).replace('.', ',')} zł`;
+                        }
+                    }
+                });
+            }
+
 
             function initPayments() {
                 [{ btn: 'cash', msg: 'Płatność gotówką: ' }, { btn: 'card', msg: 'Płatność kartą: ' }, { btn: 'invoice', msg: 'Faktura na kwotę: ' }]
@@ -601,7 +665,6 @@
         });
     </script>
     }}
-
 <div class="modal fade" id="changeFuelPriceModal" tabindex="-1" aria-labelledby="changeFuelPriceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -609,513 +672,499 @@
                 <h5 class="modal-title" id="changeFuelPriceModalLabel">Zmień cenę paliwa</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
             </div>
-
             <div class="modal-body">
-                <form>
+                <form id="changeFuelPriceForm">
                     <div class="mb-3">
-                        <label for="fuelSelect" class="form-label">Wybierz paliwo</label>
-                        <select id="fuelSelect" class="form-select">
-                            <option selected disabled>-- wybierz paliwo --</option>
-                            <option>Benzyna 95 (D1)</option>
-                            <option>Benzyna 98 (D2)</option>
-                            <option>ON (D3)</option>
-                            <option>LPG (D4)</option>
+                        <label for="fuelTypeSelect" class="form-label">Wybierz paliwo</label>
+                        <select id="fuelTypeSelect" class="form-select" required>
+                            <option value="">-- wybierz paliwo --</option>
+                            <option value="1">Benzyna</option>
+                            <option value="2">Diesel</option>
+                            <option value="3">Gaz</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
-                        <label for="priceInput" class="form-label">Nowa cena (zł)</label>
-                        <input type="number" class="form-control" id="priceInput" placeholder="np. 6.45" step="0.01" min="0">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="dateFromInput" class="form-label">Data od kiedy obowiązuje</label>
-                        <input type="datetime-local" class="form-control" id="dateFromInput">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="dateToInput" class="form-label">Data do kiedy obowiązuje (opcjonalnie)</label>
-                        <input type="datetime-local" class="form-control" id="dateToInput">
+                        <label for="newPriceInput" class="form-label">Nowa cena (zł)</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" id="newPriceInput" required>
                     </div>
                 </form>
+                <div id="changePriceModalAlertPlaceholder" class="mt-3"></div>
             </div>
-
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                <button type="button" class="btn btn-success" disabled>Zapisz zmianę</button>
+                <button type="button" class="btn btn-primary" id="btnSaveFuelPrice">Zapisz zmianę</button>
             </div>
-
         </div>
     </div>
 </div>
-<style>
-
-    :root {
-        --primary-color: #007bff;
-        --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
-
-        --secondary-color: #6c757d;
-        --secondary-color-darken10: #545b62; /* Trochę ciemniejszy secondary */
-
-        --success-color: #28a745;
-        --success-color-darken10: #218838; /* Trochę ciemniejszy success */
-
-        --info-color: #17a2b8;
-        --info-color-lighten30: #5bc0de; /* Trochę jaśniejszy info */
-
-        --warning-color: #ffc107;
-        --danger-color: #dc3545;
-        --dark-color: #343a40;
-        --dark-color-darken10: #1d2124; /* Trochę ciemniejszy dark */
-
-        --light-color: #f8f9fa;
-        --white-color: #fff;
-        --border-color: #ced4da;
-        --text-color: #212529;
-        --text-light: #f8f9fa;
-        --spacing-unit: 1rem;
-    }
-
-    body {
-        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        line-height: 1.6;
-        color: var(--text-color);
-        background-color: var(--light-color);
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh; /* Ustawia minimalną wysokość na 100% widocznej części okna */
-    }
-
-    /* Główny kontener interfejsu kasjera */
-    .cashier-interface {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1; /* Pozwala main-content na rozciąganie */
-        width: 100%;
-        max-width: 1900px; /* Ogranicz maksymalną szerokość */
-        margin: 0 auto; /* Wyśrodkuj kontener */
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtelny cień */
-        background-color: var(--white-color);
-    }
-
-    /* Górny pasek (nagłówek) */
-    .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-unit);
-        background-color: var(--dark-color);
-        color: var(--text-light);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-        .top-bar .info-left span,
-        .top-bar .info-center span,
-        .top-bar .info-right .btn {
-            margin-right: var(--spacing-unit);
-        }
-
-    .time-display {
-        font-size: 1.2em;
-        font-weight: bold;
-    }
-
-    .date-small {
-        font-size: 0.8em;
-        opacity: 0.8;
-    }
-
-    .action-btn { /* Przyciski akcji w nagłówku */
-        background-color: var(--primary-color);
-        color: var(--white-color);
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-
-        .action-btn:hover {
-            background-color: darken(var(--primary-color), 10%); /* Przyciemnij przy najechaniu (przykład, wymaga preprocesora lub innego sposobu) */
-            opacity: 0.9; /* Alternatywnie zmień przezroczystość */
-        }
-
-    /* Style dla przycisku "Zmień cenę paliwa" z Bootstrapa */
-    .top-bar .btn-primary {
-        margin-right: var(--spacing-unit);
-    }
-
-    .fuel-type-benzyna {
-        background-color: #ffcc00; /* Yellow for Benzyna */
-        color: #333;
-    }
-
-    .fuel-type-diesel {
-        background-color: #6699cc; /* Blue for Diesel */
-        color: #fff;
-    }
-
-    .fuel-type-gaz {
-        background-color: #99cc66; /* Green for Gaz */
-        color: #333;
-    }
-
-    .grid-item-button.active-refueling {
-        border: 3px solid blue;
-        box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
-    }
-
-    /* Główna zawartość (panele) */
-    .main-content {
-        display: flex;
-        flex-grow: 1;
-        padding: var(--spacing-unit);
-        gap: var(--spacing-unit); /* Odstęp między panelami */
-    }
-
-    /* Panele - wspólne style */
-    .left-panel,
-    .middle-panel,
-    .right-panel {
-        padding: var(--spacing-unit);
-        border: 1px solid var(--border-color);
-        border-radius: 0.25rem;
-        background-color: var(--white-color);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtelny wewnętrzny cień */
-        overflow-y: auto; /* Dodaj scroll, jesli zawartosc bedzie wieksza */
-    }
-
-    .left-panel {
-        flex: 1.5; /* Proporcja szerokości */
-        min-width: 250px; /* Minimalna szerokość, aby uniknąć zgniecenia */
-    }
-
-    .middle-panel {
-        flex: 1; /* Proporcja szerokości */
-        min-width: 200px;
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-unit);
-    }
-
-    .right-panel {
-        flex: 2; /* Proporcja szerokości */
-        min-width: 300px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Grid dla przycisków dystrybutorów */
-    .css-grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Automatycznie dopasowuje kolumny, min 150px szerokosci */
-        gap: var(--spacing-unit);
-        padding: 0; /* Usun padding, bo panel ma juz padding */
-        border: none; /* Usun ramke, bo panel ma juz ramke */
-    }
-
-    /* Styl przycisku dystrybutora */
-    .grid-item-button {
-        /* ... (istniejące style) ... */
-        border: 1px solid var(--border-color);
-        border-radius: 0.25rem;
-        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-    }
-
-        /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
-
-        /* FuelId = 1: Zielony */
-        .grid-item-button[data-fuelid="1"] {
-            background-color: var(--success-color);
-            color: var(--text-light);
-            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-            border-color: var(--success-color-darken10);
-        }
-
-            .grid-item-button[data-fuelid="1"]:hover {
-                background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
-            }
-
-        /* FuelId = 2: Niebieski */
-        .grid-item-button[data-fuelid="2"] {
-            background-color: var(--primary-color);
-            color: var(--text-light);
-            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-            border-color: var(--primary-color-darken10);
-        }
-
-            .grid-item-button[data-fuelid="2"]:hover {
-                background-color: rgb(0, 0, 255);
-            }
-
-        /* FuelId = 3: Ciemny/Szary */
-        .grid-item-button[data-fuelid="3"] {
-            background-color: var(--dark-color);
-            color: var(--text-light);
-            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-            border-color: var(--dark-color-darken10);
-        }
-
-            .grid-item-button[data-fuelid="3"]:hover {
-                background-color: rgb(100, 100, 100);
-            }
-
-        /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
-        .grid-item-button.active-refueling {
-            border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
-            box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
-        }
-
-
-    /* Style dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
-    #selectedCustomerDetails.alert-info {
-        /* *** Zmieniono: background-color używa nowej zmiennej *** */
-        background-color: var(--info-color-lighten30);
-        border-color: var(--info-color);
-        color: var(--dark-color);
-    }
-
-    #selectedCustomerDetails h4 {
-        color: var(--dark-color);
-    }
-
-
-    /* Style elementów wewnątrz przycisku */
-    .distributor-name {
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-bottom: 0.5em; /* Odstęp pod nazwą */
-        /* Kolor tekstu ustawiany w regułach data-fuelid */
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtelny cień */
-    }
-
-    .item-calculated-value {
-        font-size: 1.8em;
-        font-weight: bold;
-        margin: auto 0; /* Wyśrodkuj pionowo */
-        /* Kolor tekstu ustawiany w regułach data-fuelid */
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-    }
-
-    .bottom-details {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        font-size: 0.9em;
-        margin-top: 0.5em; /* Odstęp nad szczegółami */
-        /* Kolor tekstu ustawiany w regułach data-fuelid */
-    }
-
-        .bottom-details .amount-display,
-        .bottom-details .price-display {
-            flex-basis: 50%;
-            padding: 0 5px;
-            box-sizing: border-box;
-            /* Kolor tekstu ustawiany w regułach data-fuelid */
-        }
-
-        .bottom-details .amount-display {
-            text-align: left;
-        }
-
-        .bottom-details .price-display {
-            text-align: right;
-        }
-
-
-    /* Style dla sekcji Produktów (middle-panel) */
-    .display-input-area {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-unit);
-    }
-
-    .item-details-preview {
-        padding: var(--spacing-unit);
-        border: 1px dashed var(--border-color);
-        border-radius: 0.25rem;
-        background-color: var(--light-color);
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    #productDetails h3 {
-        margin-top: 0;
-        margin-bottom: 0.5rem;
-        font-size: 1.2em;
-        color: var(--primary-color);
-    }
-
-    #productDetails p {
-        margin: 0 0 0.3rem 0;
-        font-size: 0.9em;
-    }
-
-    /* Style dla przycisków "Dodaj do zamówienia", "Usuń produkt" */
-    .middle-panel .action-btn {
-        width: 100%;
-        margin-top: 0.5rem;
-        padding: 0.75rem;
-        font-size: 1em;
-    }
-
-
-    /* Style dla Sekcji Paragonu (right-panel) */
-    .receipt-header {
-        display: grid;
-        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dostosuj szerokości kolumn */
-        gap: 5px;
-        padding: 10px;
-        font-weight: bold;
-        border-bottom: 1px solid var(--dark-color);
-        margin-bottom: 5px;
-        color: var(--dark-color);
-    }
-
-    .receipt-items-container {
-        flex-grow: 1; /* Pozwala na rozciąganie listy pozycji */
-        overflow-y: auto; /* Dodaje scroll, jesli lista jest dluga */
-        padding-right: 5px; /* Dodatkowy padding, aby scrollbar nie zasłaniał treści */
-    }
-
-    .receipt-item {
-        display: grid;
-        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dopasuj do nagłówka */
-        gap: 5px;
-        padding: 8px 10px;
-        border-bottom: 1px dashed var(--border-color);
-        align-items: center;
-        font-size: 0.95em;
-    }
-
-        .receipt-item span {
-            overflow: hidden;
-            text-overflow: ellipsis; /* Dodaje ... jesli tekst jest za dlugi */
-            white-space: nowrap; /* Zapobiega zawijaniu tekstu */
-        }
-
-    .receipt-summary {
-        margin-top: 10px;
-        padding: 10px;
-        border-top: 2px solid var(--dark-color);
-        font-size: 1.4em;
-        font-weight: bold;
-        text-align: right;
-        color: var(--dark-color);
-    }
-
-    .total-amount-value {
-        color: var(--success-color); /* Kolor dla kwoty do zapłaty */
-    }
-
-    /* Opcje płatności */
-    .payment-options {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Dopasuj do dostępnej szerokości */
-        gap: var(--spacing-unit);
-        margin-top: var(--spacing-unit);
-    }
-
-    .payment-btn {
-        padding: 1rem;
-        font-size: 1.1em;
-        font-weight: bold;
-        border: none;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        transition: background-color 0.2s ease, opacity 0.2s ease;
-        color: var(--white-color);
-        background-color: var(--primary-color); /* Domyślny kolor */
-    }
-
-        .payment-btn.large-btn {
-            grid-column: span 1; /* Domyślnie zajmuje jedną kolumnę w siatce */
-            /* Możesz dodać media query, aby zajmowały więcej kolumn na mniejszych ekranach */
-        }
-
-    #btnCash {
-        background-color: var(--success-color);
-    }
-    /* Zielony dla GOTÓWKA */
-    #btnCard {
-        background-color: var(--info-color);
-    }
-    /* Błękitny dla KARTA */
-    #btnInvoice {
-        background-color: var(--secondary-color);
-    }
-    /* Szary dla FAKTURA */
-
-
-    .payment-btn:hover {
-        opacity: 0.9;
-    }
-
-
-    /* Dolny pasek (stopka) */
-    .bottom-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-unit);
-        background-color: var(--dark-color);
-        color: var(--text-light);
-        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-        font-size: 0.9em;
-    }
-
-    .logout-button .btn-danger { /* Styl przycisku Wyloguj (z Bootstrapa) */
-        padding: 0.5rem 1rem;
-    }
-
-    /* Styl dla przycisku "Losuj Nowe Tankowania" */
-    #btnRandomizeRefuelings {
-        margin-bottom: var(--spacing-unit);
-    }
-
-
-    /* Style specyficzne dla Modali */
-    /* Bootstrap domyślnie styluje modale, ale możesz dodać własne poprawki */
-    .modal-content {
-        border-radius: 0.5rem;
-    }
-
-    .modal-header {
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .modal-footer {
-        border-top: 1px solid var(--border-color);
-    }
-
-    /* Poprawka dla Select2 w modalu (jeśli nadal używasz Select2 dla produktów) */
-    .modal .select2-container {
-        width: 100% !important; /* Wymuś pełną szerokość w modalu */
-    }
-
-    /* Styl dla listy wyników wyszukiwania klientów bez Select2 */
-    #customerSearchResults.list-group-item {
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-
-        #customerSearchResults.list-group-item:hover {
-            background-color: var(--light-color);
-        }
-
-    /* Styl dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
-    #selectedCustomerDetails.alert-info {
-        background-color: lighten(var(--info-color), 30%);
-        border-color: var(--info-color);
-        color: var(--dark-color);
-    }
-
-    #selectedCustomerDetails h4 {
-        color: var(--dark-color);
-    }
-</style>
+                <style>
+
+                    :root {
+                        --primary-color: #007bff;
+                        --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
+
+                        --secondary-color: #6c757d;
+                        --secondary-color-darken10: #545b62; /* Trochę ciemniejszy secondary */
+
+                        --success-color: #28a745;
+                        --success-color-darken10: #218838; /* Trochę ciemniejszy success */
+
+                        --info-color: #17a2b8;
+                        --info-color-lighten30: #5bc0de; /* Trochę jaśniejszy info */
+
+                        --warning-color: #ffc107;
+                        --danger-color: #dc3545;
+                        --dark-color: #343a40;
+                        --dark-color-darken10: #1d2124; /* Trochę ciemniejszy dark */
+
+                        --light-color: #f8f9fa;
+                        --white-color: #fff;
+                        --border-color: #ced4da;
+                        --text-color: #212529;
+                        --text-light: #f8f9fa;
+                        --spacing-unit: 1rem;
+                    }
+
+                    body {
+                        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                        line-height: 1.6;
+                        color: var(--text-color);
+                        background-color: var(--light-color);
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        flex-direction: column;
+                        min-height: 100vh; /* Ustawia minimalną wysokość na 100% widocznej części okna */
+                    }
+
+                    /* Główny kontener interfejsu kasjera */
+                    .cashier-interface {
+                        display: flex;
+                        flex-direction: column;
+                        flex-grow: 1; /* Pozwala main-content na rozciąganie */
+                        width: 100%;
+                        max-width: 1900px; /* Ogranicz maksymalną szerokość */
+                        margin: 0 auto; /* Wyśrodkuj kontener */
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtelny cień */
+                        background-color: var(--white-color);
+                    }
+
+                    /* Górny pasek (nagłówek) */
+                    .top-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: var(--spacing-unit);
+                        background-color: var(--dark-color);
+                        color: var(--text-light);
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }
+
+                        .top-bar .info-left span,
+                        .top-bar .info-center span,
+                        .top-bar .info-right .btn {
+                            margin-right: var(--spacing-unit);
+                        }
+
+                    .time-display {
+                        font-size: 1.2em;
+                        font-weight: bold;
+                    }
+
+                    .date-small {
+                        font-size: 0.8em;
+                        opacity: 0.8;
+                    }
+
+                    .action-btn { /* Przyciski akcji w nagłówku */
+                        background-color: var(--primary-color);
+                        color: var(--white-color);
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 0.25rem;
+                        cursor: pointer;
+                        transition: background-color 0.2s ease;
+                    }
+
+                        .action-btn:hover {
+                            background-color: darken(var(--primary-color), 10%); /* Przyciemnij przy najechaniu (przykład, wymaga preprocesora lub innego sposobu) */
+                            opacity: 0.9; /* Alternatywnie zmień przezroczystość */
+                        }
+
+                    /* Style dla przycisku "Zmień cenę paliwa" z Bootstrapa */
+                    .top-bar .btn-primary {
+                        margin-right: var(--spacing-unit);
+                    }
+
+                    .fuel-type-benzyna {
+                        background-color: #ffcc00; /* Yellow for Benzyna */
+                        color: #333;
+                    }
+
+                    .fuel-type-diesel {
+                        background-color: #6699cc; /* Blue for Diesel */
+                        color: #fff;
+                    }
+
+                    .fuel-type-gaz {
+                        background-color: #99cc66; /* Green for Gaz */
+                        color: #333;
+                    }
+
+                    .grid-item-button.active-refueling {
+                        border: 3px solid blue;
+                        box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+                    }
+
+                    /* Główna zawartość (panele) */
+                    .main-content {
+                        display: flex;
+                        flex-grow: 1;
+                        padding: var(--spacing-unit);
+                        gap: var(--spacing-unit); /* Odstęp między panelami */
+                    }
+
+                    /* Panele - wspólne style */
+                    .left-panel,
+                    .middle-panel,
+                    .right-panel {
+                        padding: var(--spacing-unit);
+                        border: 1px solid var(--border-color);
+                        border-radius: 0.25rem;
+                        background-color: var(--white-color);
+                        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtelny wewnętrzny cień */
+                        overflow-y: auto; /* Dodaj scroll, jesli zawartosc bedzie wieksza */
+                    }
+
+                    .left-panel {
+                        flex: 1.5; /* Proporcja szerokości */
+                        min-width: 250px; /* Minimalna szerokość, aby uniknąć zgniecenia */
+                    }
+
+                    .middle-panel {
+                        flex: 1; /* Proporcja szerokości */
+                        min-width: 200px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: var(--spacing-unit);
+                    }
+
+                    .right-panel {
+                        flex: 2; /* Proporcja szerokości */
+                        min-width: 300px;
+                        display: flex;
+                        flex-direction: column;
+                    }
+
+                    /* Grid dla przycisków dystrybutorów */
+                    .css-grid-container {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Automatycznie dopasowuje kolumny, min 150px szerokosci */
+                        gap: var(--spacing-unit);
+                        padding: 0; /* Usun padding, bo panel ma juz padding */
+                        border: none; /* Usun ramke, bo panel ma juz ramke */
+                    }
+
+                    /* Styl przycisku dystrybutora */
+                    .grid-item-button {
+                        /* ... (istniejące style) ... */
+                        border: 1px solid var(--border-color);
+                        border-radius: 0.25rem;
+                        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+                    }
+
+                        /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
+
+                        /* FuelId = 1: Zielony */
+                        .grid-item-button[data-fuelid="1"] {
+                            background-color: var(--success-color);
+                            color: var(--text-light);
+                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                            border-color: var(--success-color-darken10);
+                        }
+
+                            .grid-item-button[data-fuelid="1"]:hover {
+                                background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
+                            }
+
+                        /* FuelId = 2: Niebieski */
+                        .grid-item-button[data-fuelid="2"] {
+                            background-color: var(--primary-color);
+                            color: var(--text-light);
+                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                            border-color: var(--primary-color-darken10);
+                        }
+
+                            .grid-item-button[data-fuelid="2"]:hover {
+                                background-color: rgb(0, 0, 255);
+                            }
+
+                        /* FuelId = 3: Ciemny/Szary */
+                        .grid-item-button[data-fuelid="3"] {
+                            background-color: var(--dark-color);
+                            color: var(--text-light);
+                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                            border-color: var(--dark-color-darken10);
+                        }
+
+                            .grid-item-button[data-fuelid="3"]:hover {
+                                background-color: rgb(100, 100, 100);
+                            }
+
+                        /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
+                        .grid-item-button.active-refueling {
+                            border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
+                            box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
+                        }
+
+
+                    /* Style dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+                    #selectedCustomerDetails.alert-info {
+                        /* *** Zmieniono: background-color używa nowej zmiennej *** */
+                        background-color: var(--info-color-lighten30);
+                        border-color: var(--info-color);
+                        color: var(--dark-color);
+                    }
+
+                    #selectedCustomerDetails h4 {
+                        color: var(--dark-color);
+                    }
+
+
+                    /* Style elementów wewnątrz przycisku */
+                    .distributor-name {
+                        font-size: 1.1em;
+                        font-weight: bold;
+                        margin-bottom: 0.5em; /* Odstęp pod nazwą */
+                        /* Kolor tekstu ustawiany w regułach data-fuelid */
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtelny cień */
+                    }
+
+                    .item-calculated-value {
+                        font-size: 1.8em;
+                        font-weight: bold;
+                        margin: auto 0; /* Wyśrodkuj pionowo */
+                        /* Kolor tekstu ustawiany w regułach data-fuelid */
+                        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+                    }
+
+                    .bottom-details {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        font-size: 0.9em;
+                        margin-top: 0.5em; /* Odstęp nad szczegółami */
+                        /* Kolor tekstu ustawiany w regułach data-fuelid */
+                    }
+
+                        .bottom-details .amount-display,
+                        .bottom-details .price-display {
+                            flex-basis: 50%;
+                            padding: 0 5px;
+                            box-sizing: border-box;
+                            /* Kolor tekstu ustawiany w regułach data-fuelid */
+                        }
+
+                        .bottom-details .amount-display {
+                            text-align: left;
+                        }
+
+                        .bottom-details .price-display {
+                            text-align: right;
+                        }
+
+
+                    /* Style dla sekcji Produktów (middle-panel) */
+                    .display-input-area {
+                        display: flex;
+                        flex-direction: column;
+                        gap: var(--spacing-unit);
+                    }
+
+                    .item-details-preview {
+                        padding: var(--spacing-unit);
+                        border: 1px dashed var(--border-color);
+                        border-radius: 0.25rem;
+                        background-color: var(--light-color);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.5rem;
+                    }
+
+                    #productDetails h3 {
+                        margin-top: 0;
+                        margin-bottom: 0.5rem;
+                        font-size: 1.2em;
+                        color: var(--primary-color);
+                    }
+
+                    #productDetails p {
+                        margin: 0 0 0.3rem 0;
+                        font-size: 0.9em;
+                    }
+
+                    /* Style dla przycisków "Dodaj do zamówienia", "Usuń produkt" */
+                    .middle-panel .action-btn {
+                        width: 100%;
+                        margin-top: 0.5rem;
+                        padding: 0.75rem;
+                        font-size: 1em;
+                    }
+
+
+                    /* Style dla Sekcji Paragonu (right-panel) */
+                    .receipt-header {
+                        display: grid;
+                        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dostosuj szerokości kolumn */
+                        gap: 5px;
+                        padding: 10px;
+                        font-weight: bold;
+                        border-bottom: 1px solid var(--dark-color);
+                        margin-bottom: 5px;
+                        color: var(--dark-color);
+                    }
+
+                    .receipt-items-container {
+                        flex-grow: 1; /* Pozwala na rozciąganie listy pozycji */
+                        overflow-y: auto; /* Dodaje scroll, jesli lista jest dluga */
+                        padding-right: 5px; /* Dodatkowy padding, aby scrollbar nie zasłaniał treści */
+                    }
+
+                    .receipt-item {
+                        display: grid;
+                        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dopasuj do nagłówka */
+                        gap: 5px;
+                        padding: 8px 10px;
+                        border-bottom: 1px dashed var(--border-color);
+                        align-items: center;
+                        font-size: 0.95em;
+                    }
+
+                        .receipt-item span {
+                            overflow: hidden;
+                            text-overflow: ellipsis; /* Dodaje ... jesli tekst jest za dlugi */
+                            white-space: nowrap; /* Zapobiega zawijaniu tekstu */
+                        }
+
+                    .receipt-summary {
+                        margin-top: 10px;
+                        padding: 10px;
+                        border-top: 2px solid var(--dark-color);
+                        font-size: 1.4em;
+                        font-weight: bold;
+                        text-align: right;
+                        color: var(--dark-color);
+                    }
+
+                    .total-amount-value {
+                        color: var(--success-color); /* Kolor dla kwoty do zapłaty */
+                    }
+
+                    /* Opcje płatności */
+                    .payment-options {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Dopasuj do dostępnej szerokości */
+                        gap: var(--spacing-unit);
+                        margin-top: var(--spacing-unit);
+                    }
+
+                    .payment-btn {
+                        padding: 1rem;
+                        font-size: 1.1em;
+                        font-weight: bold;
+                        border: none;
+                        border-radius: 0.25rem;
+                        cursor: pointer;
+                        transition: background-color 0.2s ease, opacity 0.2s ease;
+                        color: var(--white-color);
+                        background-color: var(--primary-color); /* Domyślny kolor */
+                    }
+
+                        .payment-btn.large-btn {
+                            grid-column: span 1; /* Domyślnie zajmuje jedną kolumnę w siatce */
+                            /* Możesz dodać media query, aby zajmowały więcej kolumn na mniejszych ekranach */
+                        }
+
+                    #btnCash {
+                        background-color: var(--success-color);
+                    }
+                    /* Zielony dla GOTÓWKA */
+                    #btnCard {
+                        background-color: var(--info-color);
+                    }
+                    /* Błękitny dla KARTA */
+                    #btnInvoice {
+                        background-color: var(--secondary-color);
+                    }
+                    /* Szary dla FAKTURA */
+
+
+                    .payment-btn:hover {
+                        opacity: 0.9;
+                    }
+
+
+                    /* Dolny pasek (stopka) */
+                    .bottom-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: var(--spacing-unit);
+                        background-color: var(--dark-color);
+                        color: var(--text-light);
+                        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+                        font-size: 0.9em;
+                    }
+
+                    .logout-button .btn-danger { /* Styl przycisku Wyloguj (z Bootstrapa) */
+                        padding: 0.5rem 1rem;
+                    }
+
+                    /* Styl dla przycisku "Losuj Nowe Tankowania" */
+                    #btnRandomizeRefuelings {
+                        margin-bottom: var(--spacing-unit);
+                    }
+
+
+                    /* Style specyficzne dla Modali */
+                    /* Bootstrap domyślnie styluje modale, ale możesz dodać własne poprawki */
+                    .modal-content {
+                        border-radius: 0.5rem;
+                    }
+
+                    .modal-header {
+                        border-bottom: 1px solid var(--border-color);
+                    }
+
+                    .modal-footer {
+                        border-top: 1px solid var(--border-color);
+                    }
+
+                    /* Poprawka dla Select2 w modalu (jeśli nadal używasz Select2 dla produktów) */
+                    .modal .select2-container {
+                        width: 100% !important; /* Wymuś pełną szerokość w modalu */
+                    }
+
+                    /* Styl dla listy wyników wyszukiwania klientów bez Select2 */
+                    #customerSearchResults.list-group-item {
+                        cursor: pointer;
+                        transition: background-color 0.2s ease;
+                    }
+
+                        #customerSearchResults.list-group-item:hover {
+                            background-color: var(--light-color);
+                        }
+
+                    /* Styl dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+                    #selectedCustomerDetails.alert-info {
+                        background-color: lighten(var(--info-color), 30%);
+                        border-color: var(--info-color);
+                        color: var(--dark-color);
+                    }
+
+                    #selectedCustomerDetails h4 {
+                        color: var(--dark-color);
+                    }
+                </style>
 
