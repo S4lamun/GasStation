@@ -11,42 +11,60 @@ using System.Linq; // Pamiętaj o dodaniu using do Twoich Models
 
 namespace GasStation.Controllers
 {
-	// Kontroler do zarządzania klientami
-	public class CustomerController : Controller
-	{
-		// Prywatne pole do przechowywania instancji serwisu CustomerService
-		private readonly CustomerService _customerService;
+    // Kontroler do zarządzania klientami
+    public class CashierController : Controller
+    {
+        private readonly FuelService _fuelService;
+		private readonly CustomerService _customerService; // Dodajemy serwis klienta
+        private static readonly Dictionary<int, string> fuelTypesMap = new Dictionary<int, string>
+        {
+            {1, "Benzyna"},
+            {2, "Diesel"},
+            {3, "Gaz"}
+        };
 
-		public CustomerController()
-		{
-			
-		}
-		// Konstruktor, do którego kontener DI wstrzyknie instancję CustomerService
-		public CustomerController(CustomerService customerService)
-		{
+        public CashierController()
+        {
+            // Domyślny konstruktor
+        }
+
+        public CashierController(FuelService fuelService, CustomerService customerService)
+        {
+            _fuelService = fuelService;
 			_customerService = customerService;
-		}
+        }
 
-		// GET: Customer
-		// Akcja wyświetlająca listę wszystkich klientów
-		public ActionResult Index()
-		{
-			try
-			{
-				// Wywołaj metodę serwisu, aby pobrać listę klientów
-				List<CustomerDTO> customers = _customerService.GetAllCustomers();
+        public ActionResult Cashier_view()
+        {
+            try
+            {
+                // Pobierz aktualne ceny paliw przez serwis
+                var fuelPrices = _fuelService.GetAllCurrentPrices().ToDictionary(f => f.FuelId, f => f.Price);
 
-				// Przekaż listę klientów do widoku
-				return View(customers);
-			}
-			catch (Exception ex)
-			{
-				// Obsługa błędów - możesz zalogować błąd i/lub przekierować do strony błędu
-				// Na potrzeby przykładu, zwrócimy widok błędu lub komunikat
-				ViewBag.ErrorMessage = "Wystąpił błąd podczas pobierania listy klientów: " + ex.Message;
-				return View("Error"); // Zakładając, że masz widok Error.cshtml
-			}
-		}
+                var items = Enumerable.Range(1, 6).Select(i =>
+                {
+                    var fuelId = (i % 3) + 1; // Cykl 1-3 dla różnych paliw
+                    return new RefuelingEntryDTO
+                    {
+                        RefuelingEntryId = i,
+                        Amount = 10.0m + i * 2,
+                        OrderId = 100 + i,
+                        FuelId = fuelId,
+                        FuelName = fuelTypesMap.ContainsKey(fuelId) ? fuelTypesMap[fuelId] : $"Paliwo {fuelId}",
+                        PriceAtSale = fuelPrices.ContainsKey(fuelId) ? fuelPrices[fuelId] : 5.50m
+                    };
+                }).ToList();
+
+                ViewBag.Items =  new List<RefuelingEntryDTO>(items); 
+                return View();
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Wystąpił błąd podczas inicjalizacji widoku kasjera: " + ex.Message;
+                return View("Error");
+            }
+        }
+    
 
 		// GET: Customer/Details/5 (gdzie 5 to NIP klienta)
 		// Akcja wyświetlająca szczegóły pojedynczego klienta

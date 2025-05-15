@@ -2,6 +2,8 @@
 using GasStation.Services;
 using GasStation.DTO;
 using System.Web.Mvc;
+using System.Linq;
+using System;
 
 // ... inne using ...
 
@@ -10,104 +12,57 @@ using System.Web.Mvc;
 public class CashierController : Controller
 {
 	private readonly EmployeeService _employeeService;
-	// ... inne serwisy, jeśli są wstrzykiwane ...
+    private readonly FuelService _fuelService;
+    // ... inne serwisy, jeśli są wstrzykiwane ...
 
-	//public CashierController()
-	//{
-	
-	//}
+    //public CashierController()
+    //{
 
-	public CashierController(EmployeeService employeeService /*, inne serwisy */)
+    //}
+
+    public CashierController(EmployeeService employeeService, FuelService fuelService/*, inne serwisy */)
 	{
 		_employeeService = employeeService;
+        _fuelService = fuelService;
 		// ... przypisanie innych serwisów ...
 	}
 
-	public ActionResult Index()
-	{
-		string cashierName = "N/A!!"; // Domyślna wartość
-		if (User.Identity.IsAuthenticated)
-		{
-			string login = User.Identity.Name; // Pobierz login zalogowanego użytkownika
-			EmployeeDTO cashier = _employeeService.GetEmployeeByLogin(login); // Użyj serwisu do pobrania danych pracownika
-			if (cashier != null)
-			{
-				cashierName = $"{cashier.Name} {cashier.Surname}"; // Połącz imię i nazwisko
-			}
-			else
-			{
-				// Sytuacja awaryjna: użytkownik jest zalogowany, ale nie znaleziono go w bazie danych
-				// Możesz tu dodać logowanie błędu lub specjalną obsługę
-				cashierName = "Error: Cashier not found i elo";
-			}
-		}
-		ViewBag.CurrentCashierFullName = cashierName;
+    public ActionResult Cashier_view()
+    {
+        try
+        {
+            // Pobierz aktualne ceny paliw
+            var fuelPrices = _fuelService.GetAllCurrentPrices().ToDictionary(f => f.FuelId, f => f.Price);
 
-		// ... reszta logiki akcji Index (np. ładowanie zamówienia z sesji, przygotowanie ViewBag dla produktów itp.) ...
-		var currentOrder = Session["CurrentOrderSessionKey"] as CreateOrderDTO; // Użyj stałej z poprzedniego przykładu
-		if (currentOrder == null)
-		{
-			currentOrder = new CreateOrderDTO
-			{
-				Items = new System.Collections.Generic.List<OrderItemDTO>(),
-				EmployeePesel = User.Identity.IsAuthenticated ? _employeeService.GetEmployeeByLogin(User.Identity.Name)?.Pesel : null
-			};
-			Session["CurrentOrderSessionKey"] = currentOrder;
-		}
-		// Przekazanie PESEL zalogowanego pracownika, jeśli jest potrzebny w formularzu (np. w ukrytym polu)
-		if (User.Identity.IsAuthenticated)
-		{
-			var loggedInEmployee = _employeeService.GetEmployeeByLogin(User.Identity.Name);
-			ViewBag.CurrentEmployeePesel = loggedInEmployee?.Pesel; // Przekaż PESEL
-			if (string.IsNullOrEmpty(currentOrder.EmployeePesel) && loggedInEmployee != null)
-			{
-				currentOrder.EmployeePesel = loggedInEmployee.Pesel; // Ustaw w modelu zamówienia jeśli puste
-			}
-		}
+            // Pobierz dostępne typy paliw
+            var fuelTypes = _fuelService.GetAllFuels().ToDictionary(f => f.FuelId, f => f.FuelName);
 
+            var items = Enumerable.Range(1, 6).Select(i =>
+            {
+                var fuelId = (i % 3) + 1; // Cykl 1-3 dla różnych paliw
+                return new RefuelingEntryDTO
+                {
+                    RefuelingEntryId = i,
+                    Amount = 10.0m + i * 2,
+                    OrderId = 100 + i,
+                    FuelId = fuelId,
+                    FuelName = fuelTypes.ContainsKey(fuelId) ? fuelTypes[fuelId] : $"Paliwo {fuelId}",
+                    PriceAtSale = fuelPrices.ContainsKey(fuelId) ? fuelPrices[fuelId] : 5.50m
+                };
+            }).ToList();
 
-		// Przygotuj dane dla dropdownlist klientów, itp.
-		// ViewBag.Customers = new SelectList(_customerService.GetAllCustomers(), "Pesel", "CustomerDisplayFullName");
+            ViewBag.Items = items;
+            ViewBag.FuelPrices = fuelPrices; // Dodaj ceny do ViewBag
 
-
-		return View(currentOrder); // Przekaż model zamówienia do widoku
-	}
-	public ActionResult Cashier_view()
-	{
-		// Dodaj logikę pobierania imienia i nazwiska kasjera
-		string cashierName = "N/A"; // Domyślna wartość
-		EmployeeDTO loggedInEmployee = Session["LoggedInEmployee"] as EmployeeDTO;
-		if (loggedInEmployee != null)
-		{
-			string login = User.Identity.Name; // Pobierz login zalogowanego użytkownika
-			System.Diagnostics.Trace.TraceInformation($"Zalogowany login: {login}");
-
-			EmployeeDTO cashier = new EmployeeDTO();
-			cashier = _employeeService.GetEmployeeByLogin(login);
-		
-			if (cashier != null)
-			{
-				cashierName = $"{cashier.Name} {cashier.Surname}"; // Połącz imię i nazwisko
-			}
-			else
-			{
-				// Sytuacja awaryjna: użytkownik jest zalogowany, ale nie znaleziono go w bazie danych
-				cashierName = "Error: Cashier not found wiec blad";
-				
-				// Tutaj warto rozważyć logowanie błędu lub nawet wylogowanie użytkownika
-			}
-		}
-		// *** Ustaw ViewBag.CurrentCashierFullName, aby był dostępny w widoku Cashier_view ***
-		ViewBag.CurrentCashierFullName = cashierName;
-
-		// Możesz tutaj dodać inną logikę potrzebną tylko dla widoku kasjera,
-		// np. ładowanie danych dla przycisków produktów (jeśli nie są statyczne)
-		// lub przygotowanie danych dla modali (jeśli nie są ładowane AJAXem).
-		// Jeśli Twój widok Cashier_view używa modelu, musisz go tutaj utworzyć i przekazać.
-
-		// Zwróć widok Cashier_view.cshtml
-		return View();
-	}
+            return View();
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = "Wystąpił błąd podczas inicjalizacji widoku kasjera: " + ex.Message;
+            return View("Error");
+        }
+    }
+   
 
 	// ... inne akcje kontrolera ...
 }

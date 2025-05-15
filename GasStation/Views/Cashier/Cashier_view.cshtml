@@ -4,417 +4,364 @@
 @using GasStation.DTO
 
 @{
+
     ViewBag.Title = "Cashier_view";
-
-
-    var items = Enumerable.Range(1, 6).Select(i => new RefuelingEntryDTO
-    {
-        RefuelingEntryId = i,
-        Amount = 10.0m + i * 2, // np. ilość zatankowanego paliwa
-        OrderId = 100 + i,      // przykładowy ID zamówienia
-        FuelId = i,
-        FuelName = $"{i}", // zamiast Name
-        PriceAtSale = 5.50m + i        // przykładowa cena sprzedaży
-    }).ToList();
+    var items = ViewBag.Items as List<GasStation.DTO.RefuelingEntryDTO> ?? new List<GasStation.DTO.RefuelingEntryDTO>();
+    var fuelPrices = ViewBag.FuelPrices as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
 
 
 
-}
-<link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
-<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Dodaj JS Select2 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    }
+    <link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Dodaj JS Select2 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
-<div class="cashier-interface">
-    <header class="top-bar">
-        <div class="info-left">
-            <span>KASA: 1</span>
+    <div class="cashier-interface">
+        <header class="top-bar">
+            <div class="info-left">
+                <span>KASA: 1</span>
 
-            <span>KASJER: @(ViewBag.CurrentCashierFullName ?? "Tutaj powinno sie zaladowac imie z ViewBag.CurrentCashierFullName")</span>
+                <span>KASJER: @(ViewBag.CurrentCashierFullName ?? "Tutaj powinno sie zaladowac imie z ViewBag.CurrentCashierFullName")</span>
 
-        </div>
-        <div class="info-center time-display" id="timeDisplay">
+            </div>
+            <div class="info-center time-display" id="timeDisplay">
 
-            @{
+                @{
 
-                var currentTime = DateTime.Now;
-            }
-            @currentTime.ToString("HH:mm") <span class="date-small">@currentTime.ToString("dd/MM/yyyy")</span>
-        </div>
-        <div class="info-right">
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeFuelPriceModal"> Zmień cenę paliwa </button>
-            <button class="action-btn" data-bs-toggle="modal" data-bs-target="#addCustomerModal">DODAJ KLIENTA</button>
-        </div>
-    </header>
-
-    <main class="main-content">
-
-        <section class="left-panel">
-            <div class="css-grid-container">
-
-                @foreach (var item in items)
-                {
-
-                    <button type="button" class="grid-item-button"
-                            data-id="@item.FuelId"
-                            data-amount="@item.Amount"
-                            data-price="@item.PriceAtSale"
-                            data-value="@(item.Amount * item.PriceAtSale)">
-
-                        <div class="distributor-name">@item.FuelName</div>
-
-                        <div class="item-calculated-value">
-                            @((item.Amount * item.PriceAtSale).ToString("N2", new System.Globalization.CultureInfo("pl-PL"))) zł
-                        </div>
-                        <div class="bottom-details">
-                            <span class="amount-display">Ilość: @item.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) L</span>
-                            <span class="price-display">Cena: @item.PriceAtSale.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) zł/L</span>
-                        </div>
-
-                        @*<div class="button-content">
-                                <div class="distributor-details">
-                                    <span class="amount">Ilość: @item.Amount L</span>
-                                    <span class="value">Wartość: @(item.Amount * item.PriceAtSale) zł</span>
-                                    <span class="price">Cena: @item.PriceAtSale zł/L</span>
-                                </div>
-                            </div>*@
-                    </button>
+                    var currentTime = DateTime.Now;
                 }
+                @currentTime.ToString("HH:mm") <span class="date-small">@currentTime.ToString("dd/MM/yyyy")</span>
             </div>
+            <div class="info-right">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeFuelPriceModal"> Zmień cenę paliwa </button>
+                <button class="action-btn" data-bs-toggle="modal" data-bs-target="#addCustomerModal">DODAJ KLIENTA</button>
+            </div>
+        </header>
 
-        </section>
+        <main class="main-content">
 
-        <section class="middle-panel">
-            <div class="display-input-area">
-                <div class="item-details-preview">
-                    <label for="productSelect">Wybierz produkt:</label>
-                    <select id="productSelect" class="product-select">
-                        <option value="">-- Wyszukaj po kodzie kreskowym --</option>
-                        <!-- Produkty będą dodawane tutaj -->
-                    </select>
-                    <div id="productDetails"></div>
-                    <button id="btnAddToOrder" class="action-btn">Dodaj do zamówienia</button>
-                    <button id="btnRemoveProduct" class="action-btn">Usuń produkt</button>
+            <section class="left-panel">
+                <div class="css-grid-container">
+
+                    @foreach (var item in items)
+                    {
+
+                        <button type="button" class="grid-item-button"
+                                data-id="@item.FuelId"
+                                data-amount="@item.Amount"
+                                data-price="@item.PriceAtSale"
+                                data-value="@(item.Amount * item.PriceAtSale)">
+
+                            <div class="distributor-name">@item.FuelName</div>
+
+                            <div class="item-calculated-value">
+                                @((item.Amount * item.PriceAtSale).ToString("N2", new System.Globalization.CultureInfo("pl-PL"))) zł
+                            </div>
+                            <div class="bottom-details">
+                                <span class="amount-display">Ilość: @item.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) L</span>
+                                <span class="price-display">Cena: @item.PriceAtSale.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) zł/L</span>
+                            </div>
+
+                            @*<div class="button-content">
+                                    <div class="distributor-details">
+                                        <span class="amount">Ilość: @item.Amount L</span>
+                                        <span class="value">Wartość: @(item.Amount * item.PriceAtSale) zł</span>
+                                        <span class="price">Cena: @item.PriceAtSale zł/L</span>
+                                    </div>
+                                </div>*@
+                        </button>
+                    }
                 </div>
+
+            </section>
+
+            <section class="middle-panel">
+                <div class="display-input-area">
+                    <div class="item-details-preview">
+                        <label for="productSelect">Wybierz produkt:</label>
+                        <select id="productSelect" class="product-select">
+                            <option value="">-- Wyszukaj po kodzie kreskowym --</option>
+                            <!-- Produkty będą dodawane tutaj -->
+                        </select>
+                        <div id="productDetails"></div>
+                        <button id="btnAddToOrder" class="action-btn">Dodaj do zamówienia</button>
+                        <button id="btnRemoveProduct" class="action-btn">Usuń produkt</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right-panel">
+                <div class="receipt-header">
+                    <span>Lp.</span>
+                    <span>Nazwa towaru</span>
+                    <span>Ilość</span>
+                    <span>Cena</span>
+                    <span>Wartość</span>
+                    <span>&nbsp;</span>
+                </div>
+
+                <div id="receiptItems" class="receipt-items-container">
+                    <!-- Produkty będą tutaj dynamicznie dodawane -->
+                </div>
+
+
+
+                <div class="receipt-summary">
+                    <div>Do zapłaty (PLN): <span id="totalAmount" class="total-amount-value">0.00</span></div>
+                </div>
+
+                <div class="payment-options">
+                    <button class="payment-btn large-btn" id="btnCash">GOTÓWKA</button>
+                    <button class="payment-btn large-btn" id="btnCard">KARTA</button>
+                    <button class="payment-btn" id="btnInvoice">FAKTURA</button>
+
+                </div>
+            </section>
+        </main>
+
+        <footer class="bottom-bar">
+            <span>F1 POMOC</span>
+            <span>F2 PRODUKTY</span>
+            <span>F3 PALIWA</span>
+            <span>F4 KLIENCI</span>
+            <span>...</span>
+
+            <span class="logout-button">
+                @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
+                @Html.ActionLink("Wyloguj", "Logout", "Home", null, new { @class = "btn btn-danger" }) @* Możesz dostosować klasy CSS *@
+            </span>
+            <div style="text-align: center; margin: 20px;">
+                <button id="btnRandomizeRefuelings" class="btn btn-secondary">Losuj Nowe Tankowania</button>
             </div>
-        </section>
-
-        <section class="right-panel">
-            <div class="receipt-header">
-                <span>Lp.</span>
-                <span>Nazwa towaru</span>
-                <span>Ilość</span>
-                <span>Cena</span>
-                <span>Wartość</span>
-                <span>&nbsp;</span>
-            </div>
-
-            <div id="receiptItems" class="receipt-items-container">
-                <!-- Produkty będą tutaj dynamicznie dodawane -->
-            </div>
-
-
-
-            <div class="receipt-summary">
-                <div>Do zapłaty (PLN): <span id="totalAmount" class="total-amount-value">0.00</span></div>
-            </div>
-
-            <div class="payment-options">
-                <button class="payment-btn large-btn" id="btnCash">GOTÓWKA</button>
-                <button class="payment-btn large-btn" id="btnCard">KARTA</button>
-                <button class="payment-btn" id="btnInvoice">FAKTURA</button>
-
-            </div>
-        </section>
-    </main>
-
-    <footer class="bottom-bar">
-        <span>F1 POMOC</span>
-        <span>F2 PRODUKTY</span>
-        <span>F3 PALIWA</span>
-        <span>F4 KLIENCI</span>
-        <span>...</span>
-
-        <span class="logout-button">
-            @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
-            @Html.ActionLink("Wyloguj", "Logout", "Home", null, new { @class = "btn btn-danger" }) @* Możesz dostosować klasy CSS *@
-        </span>
-        <div style="text-align: center; margin: 20px;">
-            <button id="btnRandomizeRefuelings" class="btn btn-secondary">Losuj Nowe Tankowania</button>
-        </div>
-    </footer>
-</div>
-<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <!- Opcjonalnie modal-lg dla szerszego modala ->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addCustomerModalLabel">Dodaj Nowego Klienta</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
-            </div>
-            <div class="modal-body">
-                @* Używamy unikalnego ID dla formularza w modalu *@
-                <form id="ajaxAddCustomerForm">
-                    @* Renderujemy widok częściowy z formularzem.
-                        Przekazujemy nową, pustą instancję CustomerDTO. *@
-                    @Html.Partial("~/Views/Customer/_CreateCustomerForm.cshtml", new GasStation.DTO.CustomerDTO())
-                </form>
-                <div id="addCustomerModalAlertPlaceholder" class="mt-3"></div> @* Miejsce na komunikaty *@
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                <button type="button" class="btn btn-primary" id="btnSaveCustomerAjax">Zapisz Klienta</button>
+        </footer>
+    </div>
+    <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <!- Opcjonalnie modal-lg dla szerszego modala ->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCustomerModalLabel">Dodaj Nowego Klienta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                </div>
+                <div class="modal-body">
+                    @* Używamy unikalnego ID dla formularza w modalu *@
+                    <form id="ajaxAddCustomerForm">
+                        @* Renderujemy widok częściowy z formularzem.
+                            Przekazujemy nową, pustą instancję CustomerDTO. *@
+                        @Html.Partial("~/Views/Customer/_CreateCustomerForm.cshtml", new GasStation.DTO.CustomerDTO())
+                    </form>
+                    <div id="addCustomerModalAlertPlaceholder" class="mt-3"></div> @* Miejsce na komunikaty *@
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveCustomerAjax">Zapisz Klienta</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
-    {
+    @section Scripts {
+        {
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            let currentTotal = 0;
-            const totalAmount = id('totalAmount');
-            const productSelect = id('productSelect');
-            const receiptItems = id('receiptItems');
-            const timeDisplay = id('timeDisplay');
-            const addCustomerModal = id('addCustomerModal');
-            const addCustomerForm = id('ajaxAddCustomerForm');
-            const customerAlert = id('addCustomerModalAlertPlaceholder');
-            const changeFuelModal = id('changeFuelPriceModal');
-            const fuelTypeSelect = id('fuelTypeSelectDropdown');
-            const newPriceInput = id('newPriceInput');
-            const priceAlert = id('changePriceModalAlertPlaceholder');
-            const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier');
-            const fuelTypesMap = {
-                1: "Benzyna",
-                2: "Diesel",
-                3: "Gaz"
-            }
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+        // Przekaż ceny paliw do JavaScript
+        const fuelPrices = @Html.Raw(Json.Encode(fuelPrices));
 
-            const btns = {
-                add: id('btnAddToOrder'),
-                remove: id('btnRemoveProduct'),
-                randomFuel: id('btnRandomizeRefuelings'),
-                saveCustomer: id('btnSaveCustomerAjax'),
-                savePrice: id('btnSaveFuelPrice'),
-                cash: id('btnCash'),
-                card: id('btnCard'),
-                invoice: id('btnInvoice')
-            };
+        // Inicjalizacja przycisków z rzeczywistymi cenami
+        function initializeFuelButtons() {
+            document.querySelectorAll('.grid-item-button').forEach((button, index) => {
+                const fuelId = (index % 3) + 1;
+                const fuelName = button.dataset.fuelName;
+                const amount = parseFloat(button.dataset.amount);
+                const price = fuelPrices[fuelId] || 5.50;
+                const value = amount * price;
 
-            const fuelButtons = [...document.querySelectorAll('.grid-item-button')];
-            let fuelPrices = {};
-            let products = [];
-            let selectedProduct = null;
+                // Aktualizuj dane przycisku
+                button.dataset.id = fuelId;
+                button.dataset.price = price.toFixed(2);
+                button.dataset.value = value.toFixed(2);
 
-            fetchPrices();
-            fetchProducts();
-            initFuelButtons();
-            initRandomFuel();
-            initProducts();
-            initCustomerModal();
-            initChangeFuelModal();
-            initPayments();
-            initSelect2();
-            updateTime();
-            setInterval(updateTime, 60000);
+                // Aktualizuj wyświetlane wartości
+                button.querySelector('.price-display').textContent = `Cena: ${price.toFixed(2).replace('.', ',')} zł/L`;
+                button.querySelector('.item-calculated-value').textContent = `${value.toFixed(2).replace('.', ',')} zł`;
+            });
+        }
 
-            function id(name) { return document.getElementById(name); }
-            function dataset(el, key) { return el && el.dataset[key] || null; }
-            function parseNum(str) { const n = parseFloat(str.replace(',', '.')); return isNaN(n) ? 0 : n; }
-            function fmtPLN(n) { return n.toFixed(2).replace('.', ','); }
-            function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
-            function alertIn(el, msg, type) { if (el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
-
-            function fetchPrices() {
-                fetch('/Fuel/GetCurrentPricesJson').then(r => r.ok ? r.json() : Promise.reject())
-                    .then(data => fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {}));
-            }
-
-            function fetchProducts() {
-                fetch('/Product/GetAllProductsJson')
-                    .then(r => r.ok ? r.json() : Promise.reject())
-                    .then(data => {
-                        products = data;
-                        populateProductDropdown();
-                    })
-                    .catch(err => console.error('Error fetching products:', err));
-            }
-
-            function populateProductDropdown() {
-                if (!productSelect) return;
-
-                productSelect.innerHTML = '<option value="">-- Wyszukaj produkt --</option>';
-
-                products.forEach(p => {
-                    // Uwzględniamy strukturę ProductDTO z właściwościami ProductId, Name i Price
-                    const option = new Option(`${p.Name} (${fmtPLN(p.Price)} zł)`, p.ProductId);
-                    option.dataset.product = JSON.stringify(p);
-                    productSelect.add(option);
-                });
-            }
-
-            function initFuelButtons() {
-                // Najpierw zastosuj losowanie paliw przy inicjalizacji
-                randomizeFuelsOnLoad();
-
-                fuelButtons.forEach(b => {
-                    b.addEventListener('click', () => {
-                        const fuelId = b.dataset.id;
-                        const fuelName = b.dataset.fuelName || `Paliwo ${fuelId}`;
-                        const amount = parseNum(b.dataset.amount);
-                        const price = parseNum(b.dataset.price);
-                        const value = parseNum(b.dataset.value);
-                        const isActive = b.classList.contains('active-refueling');
-
-                        b.classList.toggle('active-refueling');
-
-                        if (b.classList.contains('active-refueling') && !isActive) {
-                            currentTotal += value;
-                            addFuelToReceipt(fuelId, fuelName, amount, price, value);
-                        } else if (!b.classList.contains('active-refueling') && isActive) {
-                            currentTotal -= value;
-                            removeFuelFromReceipt(fuelId);
-                        }
-                        updateTotal();
-                    });
-                });
-            }
-
-            function addFuelToReceipt(fuelId, fuelName, amount, price, value) {
-                const div = document.createElement('div');
-                div.className = 'receipt-item';
-                div.dataset.fuelId = fuelId;
-                div.innerHTML = `
-            <span>${receiptItems.children.length + 1}</span>
-            <span>${fuelName}</span>
-            <span>${fmtPLN(amount)} L</span>
-            <span>${fmtPLN(price)}</span>
-            <span>${fmtPLN(value)}</span>
-            <button class="btn-delete-item">X</button>
-        `;
-
-                div.querySelector('.btn-delete-item').addEventListener('click', () => {
-                    currentTotal -= value;
-                    updateTotal();
-                    div.remove();
-                    // Znajdź odpowiedni przycisk paliwa i zdeaktywuj go
-                    const fuelButton = fuelButtons.find(b => b.dataset.id === fuelId);
-                    if (fuelButton) {
-                        fuelButton.classList.remove('active-refueling');
-                    }
-                });
-
-                receiptItems.append(div);
-            }
-
-            function removeFuelFromReceipt(fuelId) {
-                const items = [...receiptItems.children];
-                const itemToRemove = items.find(i => i.dataset.fuelId === fuelId);
-                if (itemToRemove) {
-                    itemToRemove.remove();
+        initializeFuelButtons();
+    });
+            document.addEventListener('DOMContentLoaded', () => {
+                let currentTotal = 0;
+                const totalAmount = id('totalAmount');
+                const productSelect = id('productSelect');
+                const receiptItems = id('receiptItems');
+                const timeDisplay = id('timeDisplay');
+                const addCustomerModal = id('addCustomerModal');
+                const addCustomerForm = id('ajaxAddCustomerForm');
+                const customerAlert = id('addCustomerModalAlertPlaceholder');
+                const changeFuelModal = id('changeFuelPriceModal');
+                const fuelTypeSelect = id('fuelTypeSelectDropdown');
+                const newPriceInput = id('newPriceInput');
+                const priceAlert = id('changePriceModalAlertPlaceholder');
+                const employeeId = dataset(id('currentEmployeeIdentifier'), 'employeeIdentifier');
+                const fuelTypesMap = {
+                    1: "Benzyna",
+                    2: "Diesel",
+                    3: "Gaz"
                 }
 
-                // Ponownie numerujemy pozycje
-                items.forEach((item, index) => {
-                    if (item.querySelector('span')) {
-                        item.querySelector('span').textContent = index + 1;
-                    }
-                });
-            }
+                const btns = {
+                    add: id('btnAddToOrder'),
+                    remove: id('btnRemoveProduct'),
+                    randomFuel: id('btnRandomizeRefuelings'),
+                    saveCustomer: id('btnSaveCustomerAjax'),
+                    savePrice: id('btnSaveFuelPrice'),
+                    cash: id('btnCash'),
+                    card: id('btnCard'),
+                    invoice: id('btnInvoice')
+                };
 
-            function randomizeFuelsOnLoad() {
-                fuelButtons.forEach((b, index) => {
-                    const randomFuelId = Math.floor(Math.random() * 3) + 1;
-                    const fuelName = fuelTypesMap[randomFuelId]; // Teraz używa pełnej nazwy
-                    const price = fuelPrices[randomFuelId] || 5.50;
-                    const amount = (Math.random() * 39 + 1).toFixed(2);
-                    const value = parseFloat(amount) * price;
+                const fuelButtons = [...document.querySelectorAll('.grid-item-button')];
+                let fuelPrices = {};
+                let products = [];
+                let selectedProduct = null;
 
-                    // Ustawiamy wszystkie potrzebne atrybuty data-
-                    b.dataset.id = randomFuelId;
-                    b.dataset.fuelName = fuelName;
-                    b.dataset.amount = amount;
-                    b.dataset.price = price.toFixed(2);
-                    b.dataset.value = value.toFixed(2);
+                fetchPrices();
+                fetchProducts();
+                initFuelButtons();
+                initRandomFuel();
+                initProducts();
+                initCustomerModal();
+                initChangeFuelModal();
+                initPayments();
+                initSelect2();
+                updateTime();
+                setInterval(updateTime, 60000);
 
-                    // Aktualizujemy wyświetlane wartości
-                    text(b, '.distributor-name', fuelName);
-                    text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
-                    text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
-                    text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
+                function id(name) { return document.getElementById(name); }
+                function dataset(el, key) { return el && el.dataset[key] || null; }
+                function parseNum(str) { const n = parseFloat(str.replace(',', '.')); return isNaN(n) ? 0 : n; }
+                function fmtPLN(n) { return n.toFixed(2).replace('.', ','); }
+                function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
+                function alertIn(el, msg, type) { if (el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
 
-                    applyFuelColorsToButton(b);
-                });
-            }
+                function fetchPrices() {
+                    fetch('/Fuel/GetCurrentPricesJson').then(r => r.ok ? r.json() : Promise.reject())
+                        .then(data => fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {}));
+                }
 
-            function fetchFuelTypes() {
-                return fetch('/Fuel/GetAllFuelsJson')
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch fuel types'))
-                    .then(data => {
-                        // Mapowanie ID na nazwy paliw
-                        fuelTypesMap = {
-                            1: "Benzyna",
-                            2: "Diesel",
-                            3: "Gaz"
-                        };
-                        return data;
-                    })
-                    .catch(err => {
-                        console.error('Error fetching fuel types:', err);
-                        // Domyślne wartości jeśli wystąpi błąd
-                        fuelTypesMap = {
-                            1: "Benzyna",
-                            2: "Diesel",
-                            3: "Gaz"
-                        };
-                        return fuelTypesMap;
+                function fetchProducts() {
+                    fetch('/Product/GetAllProductsJson')
+                        .then(r => r.ok ? r.json() : Promise.reject())
+                        .then(data => {
+                            products = data;
+                            populateProductDropdown();
+                        })
+                        .catch(err => console.error('Error fetching products:', err));
+                }
+
+                function populateProductDropdown() {
+                    if (!productSelect) return;
+
+                    productSelect.innerHTML = '<option value="">-- Wyszukaj produkt --</option>';
+
+                    products.forEach(p => {
+                        // Uwzględniamy strukturę ProductDTO z właściwościami ProductId, Name i Price
+                        const option = new Option(`${p.Name} (${fmtPLN(p.Price)} zł)`, p.ProductId);
+                        option.dataset.product = JSON.stringify(p);
+                        productSelect.add(option);
                     });
-            }
+                }
 
+                function initFuelButtons() {
+                    // Najpierw zastosuj losowanie paliw przy inicjalizacji
+                    randomizeFuelsOnLoad();
 
-
-
-            function initRandomFuel() {
-                if (!btns.randomFuel) return;
-                btns.randomFuel.addEventListener('click', () => {
-                    // Usuń wszystkie pozycje paliw z paragonu
-                    [...receiptItems.children].forEach(item => {
-                        if (item.dataset.fuelId) {
-                            currentTotal -= parseNum(item.children[4].textContent.replace(',', '.'));
-                            item.remove();
-                        }
-                    });
-
-                    // Zresetuj przyciski paliw
                     fuelButtons.forEach(b => {
-                        b.classList.remove('active-refueling');
+                        b.addEventListener('click', () => {
+                            const fuelId = b.dataset.id;
+                            const fuelName = b.dataset.fuelName || `Paliwo ${fuelId}`;
+                            const amount = parseNum(b.dataset.amount);
+                            const price = parseNum(b.dataset.price);
+                            const value = parseNum(b.dataset.value);
+                            const isActive = b.classList.contains('active-refueling');
+
+                            b.classList.toggle('active-refueling');
+
+                            if (b.classList.contains('active-refueling') && !isActive) {
+                                currentTotal += value;
+                                addFuelToReceipt(fuelId, fuelName, amount, price, value);
+                            } else if (!b.classList.contains('active-refueling') && isActive) {
+                                currentTotal -= value;
+                                removeFuelFromReceipt(fuelId);
+                            }
+                            updateTotal();
+                        });
+                    });
+                }
+
+                function addFuelToReceipt(fuelId, fuelName, amount, price, value) {
+                    const div = document.createElement('div');
+                    div.className = 'receipt-item';
+                    div.dataset.fuelId = fuelId;
+                    div.innerHTML = `
+                    <span>${receiptItems.children.length + 1}</span>
+                    <span>${fuelName}</span>
+                    <span>${fmtPLN(amount)} L</span>
+                    <span>${fmtPLN(price)}</span>
+                    <span>${fmtPLN(value)}</span>
+                    <button class="btn-delete-item">X</button>
+                `;
+
+                    div.querySelector('.btn-delete-item').addEventListener('click', () => {
+                        currentTotal -= value;
+                        updateTotal();
+                        div.remove();
+                        // Znajdź odpowiedni przycisk paliwa i zdeaktywuj go
+                        const fuelButton = fuelButtons.find(b => b.dataset.id === fuelId);
+                        if (fuelButton) {
+                            fuelButton.classList.remove('active-refueling');
+                        }
                     });
 
-                    // Losuj nowe wartości
-                    fuelButtons.forEach((b, index) => {
-                        const randomFuelId = Math.floor(Math.random() * 3) + 1;
-                        const fuelName = fuelTypesMap[randomFuelId];
-                        const price = fuelPrices[randomFuelId];
-                        if (!price) {
-                            console.error(`Brak ceny dla paliwa ID: ${randomFuelId}`);
-                            return;
-                        }
+                    receiptItems.append(div);
+                }
 
+                function removeFuelFromReceipt(fuelId) {
+                    const items = [...receiptItems.children];
+                    const itemToRemove = items.find(i => i.dataset.fuelId === fuelId);
+                    if (itemToRemove) {
+                        itemToRemove.remove();
+                    }
+
+                    // Ponownie numerujemy pozycje
+                    items.forEach((item, index) => {
+                        if (item.querySelector('span')) {
+                            item.querySelector('span').textContent = index + 1;
+                        }
+                    });
+                }
+
+                function randomizeFuelsOnLoad() {
+                    fuelButtons.forEach((b, index) => {
+                        const fuelId = (index % 3) + 1;
+                        const fuelName = fuelTypesMap[fuelId] || `Paliwo ${fuelId}`;
+                        const price = fuelPrices[fuelId] || 5.50; // Użyj ceny z serwera
                         const amount = (Math.random() * 39 + 1).toFixed(2);
                         const value = parseFloat(amount) * price;
 
-                        b.dataset.id = randomFuelId;
+                        // Aktualizuj dane przycisku
+                        b.dataset.id = fuelId;
                         b.dataset.fuelName = fuelName;
                         b.dataset.amount = amount;
                         b.dataset.price = price.toFixed(2);
                         b.dataset.value = value.toFixed(2);
 
+                        // Aktualizuj wyświetlane wartości
                         text(b, '.distributor-name', fuelName);
                         text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
                         text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
@@ -422,749 +369,875 @@
 
                         applyFuelColorsToButton(b);
                     });
-
-                    updateTotal();
-                });
-            }
-
-            function applyFuelColorsToButton(button) {
-                const fid = parseNum(button.dataset.id);
-                const fuelName = fuelTypesMap[fid] || '';
-
-                // Remove all fuel-related classes
-                button.classList.forEach(className => {
-                    if (className.startsWith('fuel-type-')) {
-                        button.classList.remove(className);
-                    }
-                });
-
-                // Add appropriate class based on fuel type
-                if (fid === 1) { // Benzyna
-                    button.classList.add('fuel-type-benzyna');
-                } else if (fid === 2) { // Diesel
-                    button.classList.add('fuel-type-diesel');
-                } else if (fid === 3) { // Gaz
-                    button.classList.add('fuel-type-gaz');
                 }
-            }
+
+                function fetchFuelTypes() {
+                    return fetch('/Fuel/GetAllFuelsJson')
+                        .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch fuel types'))
+                        .then(data => {
+                            // Mapowanie ID na nazwy paliw
+                            fuelTypesMap = {
+                                1: "Benzyna",
+                                2: "Diesel",
+                                3: "Gaz"
+                            };
+                            return data;
+                        })
+                        .catch(err => {
+                            console.error('Error fetching fuel types:', err);
+                            // Domyślne wartości jeśli wystąpi błąd
+                            fuelTypesMap = {
+                                1: "Benzyna",
+                                2: "Diesel",
+                                3: "Gaz"
+                            };
+                            return fuelTypesMap;
+                        });
+                }
 
 
 
-            function initProducts() {
-                if (productSelect) {
-                    productSelect.addEventListener('change', () => {
-                        const selectedOption = productSelect.options[productSelect.selectedIndex];
-                        if (selectedOption && selectedOption.dataset.product) {
-                            try {
-                                selectedProduct = JSON.parse(selectedOption.dataset.product);
-                                displayProductDetails(selectedProduct);
-                            } catch (e) {
-                                console.error("Error parsing product data", e);
+
+                function initRandomFuel() {
+                    if (!btns.randomFuel) return;
+                    btns.randomFuel.addEventListener('click', () => {
+                        // Usuń wszystkie pozycje paliw z paragonu
+                        [...receiptItems.children].forEach(item => {
+                            if (item.dataset.fuelId) {
+                                currentTotal -= parseNum(item.children[4].textContent.replace(',', '.'));
+                                item.remove();
+                            }
+                        });
+
+                        // Zresetuj przyciski paliw
+                        fuelButtons.forEach(b => {
+                            b.classList.remove('active-refueling');
+                        });
+
+                        // Losuj nowe wartości
+                        fuelButtons.forEach((b, index) => {
+                            const randomFuelId = Math.floor(Math.random() * 3) + 1;
+                            const fuelName = fuelTypesMap[randomFuelId];
+                            const price = fuelPrices[randomFuelId];
+                            if (!price) {
+                                console.error(`Brak ceny dla paliwa ID: ${randomFuelId}`);
+                                return;
+                            }
+
+                            const amount = (Math.random() * 39 + 1).toFixed(2);
+                            const value = parseFloat(amount) * price;
+
+                            b.dataset.id = randomFuelId;
+                            b.dataset.fuelName = fuelName;
+                            b.dataset.amount = amount;
+                            b.dataset.price = price.toFixed(2);
+                            b.dataset.value = value.toFixed(2);
+
+                            text(b, '.distributor-name', fuelName);
+                            text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
+                            text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
+                            text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
+
+                            applyFuelColorsToButton(b);
+                        });
+
+                        updateTotal();
+                    });
+                }
+
+                function applyFuelColorsToButton(button) {
+                    const fid = parseNum(button.dataset.id);
+                    const fuelName = fuelTypesMap[fid] || '';
+
+                    // Remove all fuel-related classes
+                    button.classList.forEach(className => {
+                        if (className.startsWith('fuel-type-')) {
+                            button.classList.remove(className);
+                        }
+                    });
+
+                    // Add appropriate class based on fuel type
+                    if (fid === 1) { // Benzyna
+                        button.classList.add('fuel-type-benzyna');
+                    } else if (fid === 2) { // Diesel
+                        button.classList.add('fuel-type-diesel');
+                    } else if (fid === 3) { // Gaz
+                        button.classList.add('fuel-type-gaz');
+                    }
+                }
+
+
+
+                function initProducts() {
+                    if (productSelect) {
+                        productSelect.addEventListener('change', () => {
+                            const selectedOption = productSelect.options[productSelect.selectedIndex];
+                            if (selectedOption && selectedOption.dataset.product) {
+                                try {
+                                    selectedProduct = JSON.parse(selectedOption.dataset.product);
+                                    displayProductDetails(selectedProduct);
+                                } catch (e) {
+                                    console.error("Error parsing product data", e);
+                                    selectedProduct = null;
+                                    id('productDetails').innerHTML = '';
+                                }
+                            } else {
                                 selectedProduct = null;
                                 id('productDetails').innerHTML = '';
                             }
-                        } else {
-                            selectedProduct = null;
-                            id('productDetails').innerHTML = '';
-                        }
-                    });
+                        });
+                    }
+
+                    btns.add && btns.add.addEventListener('click', () => selectedProduct && addToReceipt(selectedProduct));
+                    btns.remove && btns.remove.addEventListener('click', removeSelected);
                 }
 
-                btns.add && btns.add.addEventListener('click', () => selectedProduct && addToReceipt(selectedProduct));
-                btns.remove && btns.remove.addEventListener('click', removeSelected);
-            }
+                function displayProductDetails(p) {
+                    id('productDetails').innerHTML = p ?
+                        `<h3>Produkt: ${p.Name}</h3>
+                       <p><strong>ID produktu:</strong> ${p.ProductId}</p>
+                       <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
+                }
 
-            function displayProductDetails(p) {
-                id('productDetails').innerHTML = p ?
-                    `<h3>Produkt: ${p.Name}</h3>
-               <p><strong>ID produktu:</strong> ${p.ProductId}</p>
-               <p><strong>Cena:</strong> ${fmtPLN(p.Price)} zł</p>` : '';
-            }
-
-            function addToReceipt(p) {
-                const div = document.createElement('div');
-                div.className = 'receipt-item';
-                div.dataset.productId = p.ProductId;
-                div.innerHTML = `<span>1</span><span>${p.Name}</span><span>1</span><span>${fmtPLN(p.Price)}</span><span>${fmtPLN(p.Price)}</span><button class="btn-delete-item">X</button>`;
-                div.querySelector('.btn-delete-item').addEventListener('click', () => {
-                    currentTotal -= p.Price;
+                function addToReceipt(p) {
+                    const div = document.createElement('div');
+                    div.className = 'receipt-item';
+                    div.dataset.productId = p.ProductId;
+                    div.innerHTML = `<span>1</span><span>${p.Name}</span><span>1</span><span>${fmtPLN(p.Price)}</span><span>${fmtPLN(p.Price)}</span><button class="btn-delete-item">X</button>`;
+                    div.querySelector('.btn-delete-item').addEventListener('click', () => {
+                        currentTotal -= p.Price;
+                        updateTotal();
+                        div.remove();
+                    });
+                    receiptItems.append(div);
+                    currentTotal += p.Price;
                     updateTotal();
-                    div.remove();
-                });
-                receiptItems.append(div);
-                currentTotal += p.Price;
-                updateTotal();
-            }
-
-            function removeSelected() {
-                if (selectedProduct) {
-                    [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
-                        .forEach(i => {
-                            currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
-                            updateTotal();
-                            i.remove();
-                        });
                 }
-                // Dodatkowo można dodać obsługę usuwania wybranego paliwa jeśli potrzebne
-            }
 
-            function initCustomerModal() {
-                btns.saveCustomer && btns.saveCustomer.addEventListener('click', () => {
-                    const fd = new FormData(addCustomerForm);
-                    fetch('/Customer/Create', {
-                        method: 'POST',
-                        body: fd,
-                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                        .then(r => r.json()).then(data => {
-                            if (data.success) {
-                                alertIn(customerAlert, data.message || 'Klient dodany', 'success');
-                                setTimeout(() => bootstrap.Modal.getInstance(addCustomerModal).hide(), 2000);
-                            } else {
-                                const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
-                                alertIn(customerAlert, msgs.join('<br>'), 'danger');
-                            }
-                        }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
-                });
-                addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
-            } // Correct closing brace for initCustomerModal
-
-
-            function initChangeFuelModal() {
-                const changeFuelModal = document.getElementById('changeFuelPriceModal');
-                const fuelTypeSelect = document.getElementById('fuelTypeSelect'); // Zmienione z fuelTypeSelectDropdown
-                const newPriceInput = document.getElementById('newPriceInput');
-                const priceAlert = document.getElementById('changePriceModalAlertPlaceholder');
-                const btnSavePrice = document.getElementById('btnSaveFuelPrice');
-                const changeFuelPriceForm = document.getElementById('changeFuelPriceForm');
-
-                // Clear alerts when modal is hidden
-                changeFuelModal.addEventListener('hidden.bs.modal', () => {
-                    priceAlert.innerHTML = '';
-                    changeFuelPriceForm.reset();
-                });
-
-                // Handle save button click
-                btnSavePrice.addEventListener('click', async () => {
-                    // Validate form
-                    if (!changeFuelPriceForm.checkValidity()) {
-                        changeFuelPriceForm.classList.add('was-validated');
-                        return;
+                function removeSelected() {
+                    if (selectedProduct) {
+                        [...receiptItems.children].filter(i => i.dataset.productId == selectedProduct.ProductId)
+                            .forEach(i => {
+                                currentTotal -= parseNum(i.children[4].textContent.replace(',', '.'));
+                                updateTotal();
+                                i.remove();
+                            });
                     }
+                    // Dodatkowo można dodać obsługę usuwania wybranego paliwa jeśli potrzebne
+                }
 
-                    const fuelId = fuelTypeSelect.value;
-                    const newPrice = parseFloat(newPriceInput.value);
-                    const employeePesel = "22334455667";//document.getElementById('currentEmployeeIdentifier')?.dataset.employeeIdentifier;
-
-                    if (!fuelId || !newPrice || !employeePesel) {
-                        showAlert(priceAlert, 'Wszystkie pola są wymagane', 'danger');
-                        return;
-                    }
-
-                    try {
-                        // Prepare data for API
-                        const data = {
-                            FuelId: parseInt(fuelId),
-                            Price: newPrice,
-                            EmployeePesel: employeePesel
-                        };
-
-                        // Call API to update price
-                        const response = await fetch('/Fuel/AddNewPrice', {
+                function initCustomerModal() {
+                    btns.saveCustomer && btns.saveCustomer.addEventListener('click', () => {
+                        const fd = new FormData(addCustomerForm);
+                        fetch('/Customer/Create', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify(data)
-                        });
+                            body: fd,
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(r => r.json()).then(data => {
+                                if (data.success) {
+                                    alertIn(customerAlert, data.message || 'Klient dodany', 'success');
+                                    setTimeout(() => bootstrap.Modal.getInstance(addCustomerModal).hide(), 2000);
+                                } else {
+                                    const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
+                                    alertIn(customerAlert, msgs.join('<br>'), 'danger');
+                                }
+                            }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
+                    });
+                    addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
+                } // Correct closing brace for initCustomerModal
 
-                        const result = await response.json();
 
-                        if (response.ok) {
-                            showAlert(priceAlert, 'Cena paliwa została zaktualizowana', 'success');
+                function initChangeFuelModal() {
+                    const changeFuelModal = document.getElementById('changeFuelPriceModal');
+                    const fuelTypeSelect = document.getElementById('fuelTypeSelect');
+                    const newPriceInput = document.getElementById('newPriceInput');
+                    const priceAlert = document.getElementById('changePriceModalAlertPlaceholder');
+                    const btnSavePrice = document.getElementById('btnSaveFuelPrice');
+                    const changeFuelPriceForm = document.getElementById('changeFuelPriceForm');
 
-                            // Refresh fuel prices and buttons
-                            await fetchPrices();
-                            updateFuelButtonsWithNewPrices();
+                    // Clear alerts when modal is hidden
+                    changeFuelModal.addEventListener('hidden.bs.modal', () => {
+                        priceAlert.innerHTML = '';
+                        changeFuelPriceForm.reset();
+                    });
 
-                            // Close modal after 2 seconds
-                            setTimeout(() => {
-                                bootstrap.Modal.getInstance(changeFuelModal).hide();
-                            }, 2000);
-                        } else {
-                            showAlert(priceAlert, result.message || 'Wystąpił błąd podczas aktualizacji ceny', 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error updating fuel price:', error);
-                        showAlert(priceAlert, 'Wystąpił błąd podczas komunikacji z serwerem', 'danger');
-                    }
-                });
-            }
-
-            function showAlert(container, message, type) {
-                container.innerHTML = `
-                     <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message}
-                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                     </div>`;
-            }
-
-            function updateFuelButtonsWithNewPrices() {
-                fuelButtons.forEach(button => {
-                    const fuelId = button.dataset.id;
-                    const currentPrice = fuelPrices[fuelId];
-
-                    if (currentPrice) {
-                        const amount = parseFloat(button.dataset.amount);
-                        const value = amount * currentPrice;
-
-                        button.dataset.price = currentPrice.toFixed(2);
-                        button.dataset.value = value.toFixed(2);
-
-                        // Update displayed price
-                        const priceDisplay = button.querySelector('.price-display');
-                        if (priceDisplay) {
-                            priceDisplay.textContent = `Cena: ${currentPrice.toFixed(2).replace('.', ',')} zł/L`;
+                    // Handle save button click
+                    btnSavePrice.addEventListener('click', async () => {
+                        // Validate form
+                        if (!changeFuelPriceForm.checkValidity()) {
+                            changeFuelPriceForm.classList.add('was-validated');
+                            return;
                         }
 
-                        // Update displayed value
-                        const valueDisplay = button.querySelector('.item-calculated-value');
-                        if (valueDisplay) {
-                            valueDisplay.textContent = `${value.toFixed(2).replace('.', ',')} zł`;
+                        const fuelId = fuelTypeSelect.value;
+                        const newPrice = parseFloat(newPriceInput.value);
+                        const employeePesel = "22334455667"; // Tutaj powinieneś pobrać prawdziwy PESEL pracownika
+
+                        if (!fuelId || !newPrice || !employeePesel) {
+                            showAlert(priceAlert, 'Wszystkie pola są wymagane', 'danger');
+                            return;
                         }
-                    }
-                });
-            }
 
+                        try {
+                            // Prepare data for API
+                            const data = {
+                                FuelId: parseInt(fuelId),
+                                Price: newPrice,
+                                EmployeePesel: employeePesel
+                            };
 
-            function initPayments() {
-                [{ btn: 'cash', msg: 'Płatność gotówką: ' }, { btn: 'card', msg: 'Płatność kartą: ' }, { btn: 'invoice', msg: 'Faktura na kwotę: ' }]
-                    .forEach(({ btn, msg }) => btns[btn] && btns[btn].addEventListener('click', () => alert(`${msg}${fmtPLN(currentTotal)} PLN`)));
-            }
+                            // Call API to update price
+                            const response = await fetch('/Fuel/AddNewPrice', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(data)
+                            });
 
-            function initSelect2() {
-                if (window.$ && $.fn.select2) {
-                    $('#productSelect').select2({
-                        placeholder: '-- Wyszukaj produkt --',
-                        allowClear: true
+                            const result = await response.json();
+
+                            if (response.ok) {
+                                showAlert(priceAlert, 'Cena paliwa została zaktualizowana', 'success');
+
+                                // Aktualizacja cen w interfejsie
+                                updateFuelPriceInUI(fuelId, newPrice);
+
+                                // Close modal after 2 seconds
+                                setTimeout(() => {
+                                    bootstrap.Modal.getInstance(changeFuelModal).hide();
+                                }, 2000);
+                            } else {
+                                showAlert(priceAlert, result.message || 'Wystąpił błąd podczas aktualizacji ceny', 'danger');
+                            }
+                        } catch (error) {
+                            console.error('Error updating fuel price:', error);
+                            showAlert(priceAlert, 'Wystąpił błąd podczas komunikacji z serwerem', 'danger');
+                        }
                     });
                 }
-            }
 
-            function text(parent, sel, t) {
-                const e = parent.querySelector(sel);
-                if (e) e.textContent = t;
-            }
+                function updateFuelPriceInUI(fuelId, newPrice) {
+                    // 1. Aktualizacja przycisków paliw
+                    fuelButtons.forEach(button => {
+                        if (button.dataset.id === fuelId) {
+                            const amount = parseFloat(button.dataset.amount);
+                            const value = amount * newPrice;
 
-            function updateTime() {
-                const now = new Date();
-                timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) +
-                    ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
-            }
-        });
-    </script>
-    }}
-<div class="modal fade" id="changeFuelPriceModal" tabindex="-1" aria-labelledby="changeFuelPriceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="changeFuelPriceModalLabel">Zmień cenę paliwa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
-            </div>
-            <div class="modal-body">
-                <form id="changeFuelPriceForm">
-                    <div class="mb-3">
-                        <label for="fuelTypeSelect" class="form-label">Wybierz paliwo</label>
-                        <select id="fuelTypeSelect" class="form-select" required>
-                            <option value="">-- wybierz paliwo --</option>
-                            <option value="1">Benzyna</option>
-                            <option value="2">Diesel</option>
-                            <option value="3">Gaz</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPriceInput" class="form-label">Nowa cena (zł)</label>
-                        <input type="number" step="0.01" min="0.01" class="form-control" id="newPriceInput" required>
-                    </div>
-                </form>
-                <div id="changePriceModalAlertPlaceholder" class="mt-3"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-                <button type="button" class="btn btn-primary" id="btnSaveFuelPrice">Zapisz zmianę</button>
+                            // Aktualizacja danych w przycisku
+                            button.dataset.price = newPrice.toFixed(2);
+                            button.dataset.value = value.toFixed(2);
+
+                            // Aktualizacja wyświetlanych wartości
+                            const priceDisplay = button.querySelector('.price-display');
+                            if (priceDisplay) {
+                                priceDisplay.textContent = `Cena: ${newPrice.toFixed(2).replace('.', ',')} zł/L`;
+                            }
+
+                            const valueDisplay = button.querySelector('.item-calculated-value');
+                            if (valueDisplay) {
+                                valueDisplay.textContent = `${value.toFixed(2).replace('.', ',')} zł`;
+                            }
+                        }
+                    });
+
+                    // 2. Aktualizacja pozycji na paragonie (jeśli są)
+                    const receiptItems = document.querySelectorAll('#receiptItems .receipt-item');
+                    receiptItems.forEach(item => {
+                        if (item.dataset.fuelId === fuelId) {
+                            const amount = parseFloat(item.children[2].textContent.replace(',', '.'));
+                            const value = amount * newPrice;
+
+                            // Aktualizacja ceny i wartości
+                            item.children[3].textContent = newPrice.toFixed(2).replace('.', ',');
+                            item.children[4].textContent = value.toFixed(2).replace('.', ',');
+
+                            // Aktualizacja sumy
+                            updateTotalAfterPriceChange();
+                        }
+                    });
+                }
+
+                function updateTotalAfterPriceChange() {
+                    let newTotal = 0;
+                    const receiptItems = document.querySelectorAll('#receiptItems .receipt-item');
+
+                    receiptItems.forEach(item => {
+                        const value = parseFloat(item.children[4].textContent.replace(',', '.'));
+                        newTotal += value;
+                    });
+
+                    currentTotal = newTotal;
+                    updateTotal();
+                } 0
+
+
+
+                function showAlert(container, message, type) {
+                    container.innerHTML = `
+                             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                             </div>`;
+                }
+
+                function updateFuelButtonsWithNewPrices() {
+                    fuelButtons.forEach(button => {
+                        const fuelId = button.dataset.id;
+                        const currentPrice = fuelPrices[fuelId];
+
+                        if (currentPrice) {
+                            const amount = parseFloat(button.dataset.amount);
+                            const value = amount * currentPrice;
+
+                            button.dataset.price = currentPrice.toFixed(2);
+                            button.dataset.value = value.toFixed(2);
+
+                            // Update displayed price
+                            const priceDisplay = button.querySelector('.price-display');
+                            if (priceDisplay) {
+                                priceDisplay.textContent = `Cena: ${currentPrice.toFixed(2).replace('.', ',')} zł/L`;
+                            }
+
+                            // Update displayed value
+                            const valueDisplay = button.querySelector('.item-calculated-value');
+                            if (valueDisplay) {
+                                valueDisplay.textContent = `${value.toFixed(2).replace('.', ',')} zł`;
+                            }
+                        }
+                    });
+                }
+
+
+                function initPayments() {
+                    [{ btn: 'cash', msg: 'Płatność gotówką: ' }, { btn: 'card', msg: 'Płatność kartą: ' }, { btn: 'invoice', msg: 'Faktura na kwotę: ' }]
+                        .forEach(({ btn, msg }) => btns[btn] && btns[btn].addEventListener('click', () => alert(`${msg}${fmtPLN(currentTotal)} PLN`)));
+                }
+
+                function initSelect2() {
+                    if (window.$ && $.fn.select2) {
+                        $('#productSelect').select2({
+                            placeholder: '-- Wyszukaj produkt --',
+                            allowClear: true
+                        });
+                    }
+                }
+
+                function text(parent, sel, t) {
+                    const e = parent.querySelector(sel);
+                    if (e) e.textContent = t;
+                }
+
+                function updateTime() {
+                    const now = new Date();
+                    timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) +
+                        ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
+                }
+            });
+        </script>
+        }}
+    <div class="modal fade" id="changeFuelPriceModal" tabindex="-1" aria-labelledby="changeFuelPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changeFuelPriceModalLabel">Zmień cenę paliwa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeFuelPriceForm">
+                        <div class="mb-3">
+                            <label for="fuelTypeSelect" class="form-label">Wybierz paliwo</label>
+                            <select id="fuelTypeSelect" class="form-select" required>
+                                <option value="">-- wybierz paliwo --</option>
+                                <option value="1">Benzyna</option>
+                                <option value="2">Diesel</option>
+                                <option value="3">Gaz</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPriceInput" class="form-label">Nowa cena (zł)</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="newPriceInput" required>
+                        </div>
+                    </form>
+                    <div id="changePriceModalAlertPlaceholder" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveFuelPrice">Zapisz zmianę</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-                <style>
-
-                    :root {
-                        --primary-color: #007bff;
-                        --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
-
-                        --secondary-color: #6c757d;
-                        --secondary-color-darken10: #545b62; /* Trochę ciemniejszy secondary */
-
-                        --success-color: #28a745;
-                        --success-color-darken10: #218838; /* Trochę ciemniejszy success */
-
-                        --info-color: #17a2b8;
-                        --info-color-lighten30: #5bc0de; /* Trochę jaśniejszy info */
-
-                        --warning-color: #ffc107;
-                        --danger-color: #dc3545;
-                        --dark-color: #343a40;
-                        --dark-color-darken10: #1d2124; /* Trochę ciemniejszy dark */
-
-                        --light-color: #f8f9fa;
-                        --white-color: #fff;
-                        --border-color: #ced4da;
-                        --text-color: #212529;
-                        --text-light: #f8f9fa;
-                        --spacing-unit: 1rem;
-                    }
-
-                    body {
-                        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                        line-height: 1.6;
-                        color: var(--text-color);
-                        background-color: var(--light-color);
-                        margin: 0;
-                        padding: 0;
-                        display: flex;
-                        flex-direction: column;
-                        min-height: 100vh; /* Ustawia minimalną wysokość na 100% widocznej części okna */
-                    }
-
-                    /* Główny kontener interfejsu kasjera */
-                    .cashier-interface {
-                        display: flex;
-                        flex-direction: column;
-                        flex-grow: 1; /* Pozwala main-content na rozciąganie */
-                        width: 100%;
-                        max-width: 1900px; /* Ogranicz maksymalną szerokość */
-                        margin: 0 auto; /* Wyśrodkuj kontener */
-                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtelny cień */
-                        background-color: var(--white-color);
-                    }
-
-                    /* Górny pasek (nagłówek) */
-                    .top-bar {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: var(--spacing-unit);
-                        background-color: var(--dark-color);
-                        color: var(--text-light);
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    }
-
-                        .top-bar .info-left span,
-                        .top-bar .info-center span,
-                        .top-bar .info-right .btn {
-                            margin-right: var(--spacing-unit);
-                        }
-
-                    .time-display {
-                        font-size: 1.2em;
-                        font-weight: bold;
-                    }
-
-                    .date-small {
-                        font-size: 0.8em;
-                        opacity: 0.8;
-                    }
-
-                    .action-btn { /* Przyciski akcji w nagłówku */
-                        background-color: var(--primary-color);
-                        color: var(--white-color);
-                        border: none;
-                        padding: 0.5rem 1rem;
-                        border-radius: 0.25rem;
-                        cursor: pointer;
-                        transition: background-color 0.2s ease;
-                    }
-
-                        .action-btn:hover {
-                            background-color: darken(var(--primary-color), 10%); /* Przyciemnij przy najechaniu (przykład, wymaga preprocesora lub innego sposobu) */
-                            opacity: 0.9; /* Alternatywnie zmień przezroczystość */
-                        }
-
-                    /* Style dla przycisku "Zmień cenę paliwa" z Bootstrapa */
-                    .top-bar .btn-primary {
-                        margin-right: var(--spacing-unit);
-                    }
-
-                    .fuel-type-benzyna {
-                        background-color: #ffcc00; /* Yellow for Benzyna */
-                        color: #333;
-                    }
-
-                    .fuel-type-diesel {
-                        background-color: #6699cc; /* Blue for Diesel */
-                        color: #fff;
-                    }
-
-                    .fuel-type-gaz {
-                        background-color: #99cc66; /* Green for Gaz */
-                        color: #333;
-                    }
-
-                    .grid-item-button.active-refueling {
-                        border: 3px solid blue;
-                        box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
-                    }
-
-                    /* Główna zawartość (panele) */
-                    .main-content {
-                        display: flex;
-                        flex-grow: 1;
-                        padding: var(--spacing-unit);
-                        gap: var(--spacing-unit); /* Odstęp między panelami */
-                    }
-
-                    /* Panele - wspólne style */
-                    .left-panel,
-                    .middle-panel,
-                    .right-panel {
-                        padding: var(--spacing-unit);
-                        border: 1px solid var(--border-color);
-                        border-radius: 0.25rem;
-                        background-color: var(--white-color);
-                        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtelny wewnętrzny cień */
-                        overflow-y: auto; /* Dodaj scroll, jesli zawartosc bedzie wieksza */
-                    }
-
-                    .left-panel {
-                        flex: 1.5; /* Proporcja szerokości */
-                        min-width: 250px; /* Minimalna szerokość, aby uniknąć zgniecenia */
-                    }
-
-                    .middle-panel {
-                        flex: 1; /* Proporcja szerokości */
-                        min-width: 200px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: var(--spacing-unit);
-                    }
-
-                    .right-panel {
-                        flex: 2; /* Proporcja szerokości */
-                        min-width: 300px;
-                        display: flex;
-                        flex-direction: column;
-                    }
-
-                    /* Grid dla przycisków dystrybutorów */
-                    .css-grid-container {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Automatycznie dopasowuje kolumny, min 150px szerokosci */
-                        gap: var(--spacing-unit);
-                        padding: 0; /* Usun padding, bo panel ma juz padding */
-                        border: none; /* Usun ramke, bo panel ma juz ramke */
-                    }
-
-                    /* Styl przycisku dystrybutora */
-                    .grid-item-button {
-                        /* ... (istniejące style) ... */
-                        border: 1px solid var(--border-color);
-                        border-radius: 0.25rem;
-                        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-                    }
-
-                        /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
-
-                        /* FuelId = 1: Zielony */
-                        .grid-item-button[data-fuelid="1"] {
-                            background-color: var(--success-color);
-                            color: var(--text-light);
-                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-                            border-color: var(--success-color-darken10);
-                        }
-
-                            .grid-item-button[data-fuelid="1"]:hover {
-                                background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
-                            }
-
-                        /* FuelId = 2: Niebieski */
-                        .grid-item-button[data-fuelid="2"] {
-                            background-color: var(--primary-color);
-                            color: var(--text-light);
-                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-                            border-color: var(--primary-color-darken10);
-                        }
-
-                            .grid-item-button[data-fuelid="2"]:hover {
-                                background-color: rgb(0, 0, 255);
-                            }
-
-                        /* FuelId = 3: Ciemny/Szary */
-                        .grid-item-button[data-fuelid="3"] {
-                            background-color: var(--dark-color);
-                            color: var(--text-light);
-                            /* *** Zmieniono: border-color używa nowej zmiennej *** */
-                            border-color: var(--dark-color-darken10);
-                        }
-
-                            .grid-item-button[data-fuelid="3"]:hover {
-                                background-color: rgb(100, 100, 100);
-                            }
-
-                        /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
-                        .grid-item-button.active-refueling {
-                            border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
-                            box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
-                        }
-
-
-                    /* Style dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
-                    #selectedCustomerDetails.alert-info {
-                        /* *** Zmieniono: background-color używa nowej zmiennej *** */
-                        background-color: var(--info-color-lighten30);
-                        border-color: var(--info-color);
-                        color: var(--dark-color);
-                    }
-
-                    #selectedCustomerDetails h4 {
-                        color: var(--dark-color);
-                    }
-
-
-                    /* Style elementów wewnątrz przycisku */
-                    .distributor-name {
-                        font-size: 1.1em;
-                        font-weight: bold;
-                        margin-bottom: 0.5em; /* Odstęp pod nazwą */
-                        /* Kolor tekstu ustawiany w regułach data-fuelid */
-                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtelny cień */
-                    }
-
-                    .item-calculated-value {
-                        font-size: 1.8em;
-                        font-weight: bold;
-                        margin: auto 0; /* Wyśrodkuj pionowo */
-                        /* Kolor tekstu ustawiany w regułach data-fuelid */
-                        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-                    }
-
-                    .bottom-details {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        width: 100%;
-                        font-size: 0.9em;
-                        margin-top: 0.5em; /* Odstęp nad szczegółami */
-                        /* Kolor tekstu ustawiany w regułach data-fuelid */
-                    }
-
-                        .bottom-details .amount-display,
-                        .bottom-details .price-display {
-                            flex-basis: 50%;
-                            padding: 0 5px;
-                            box-sizing: border-box;
-                            /* Kolor tekstu ustawiany w regułach data-fuelid */
-                        }
-
-                        .bottom-details .amount-display {
-                            text-align: left;
-                        }
-
-                        .bottom-details .price-display {
-                            text-align: right;
-                        }
-
-
-                    /* Style dla sekcji Produktów (middle-panel) */
-                    .display-input-area {
-                        display: flex;
-                        flex-direction: column;
-                        gap: var(--spacing-unit);
-                    }
-
-                    .item-details-preview {
-                        padding: var(--spacing-unit);
-                        border: 1px dashed var(--border-color);
-                        border-radius: 0.25rem;
-                        background-color: var(--light-color);
-                        display: flex;
-                        flex-direction: column;
-                        gap: 0.5rem;
-                    }
-
-                    #productDetails h3 {
-                        margin-top: 0;
-                        margin-bottom: 0.5rem;
-                        font-size: 1.2em;
-                        color: var(--primary-color);
-                    }
-
-                    #productDetails p {
-                        margin: 0 0 0.3rem 0;
-                        font-size: 0.9em;
-                    }
-
-                    /* Style dla przycisków "Dodaj do zamówienia", "Usuń produkt" */
-                    .middle-panel .action-btn {
-                        width: 100%;
-                        margin-top: 0.5rem;
-                        padding: 0.75rem;
-                        font-size: 1em;
-                    }
-
-
-                    /* Style dla Sekcji Paragonu (right-panel) */
-                    .receipt-header {
-                        display: grid;
-                        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dostosuj szerokości kolumn */
-                        gap: 5px;
-                        padding: 10px;
-                        font-weight: bold;
-                        border-bottom: 1px solid var(--dark-color);
-                        margin-bottom: 5px;
-                        color: var(--dark-color);
-                    }
-
-                    .receipt-items-container {
-                        flex-grow: 1; /* Pozwala na rozciąganie listy pozycji */
-                        overflow-y: auto; /* Dodaje scroll, jesli lista jest dluga */
-                        padding-right: 5px; /* Dodatkowy padding, aby scrollbar nie zasłaniał treści */
-                    }
-
-                    .receipt-item {
-                        display: grid;
-                        grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dopasuj do nagłówka */
-                        gap: 5px;
-                        padding: 8px 10px;
-                        border-bottom: 1px dashed var(--border-color);
-                        align-items: center;
-                        font-size: 0.95em;
-                    }
-
-                        .receipt-item span {
-                            overflow: hidden;
-                            text-overflow: ellipsis; /* Dodaje ... jesli tekst jest za dlugi */
-                            white-space: nowrap; /* Zapobiega zawijaniu tekstu */
-                        }
-
-                    .receipt-summary {
-                        margin-top: 10px;
-                        padding: 10px;
-                        border-top: 2px solid var(--dark-color);
-                        font-size: 1.4em;
-                        font-weight: bold;
-                        text-align: right;
-                        color: var(--dark-color);
-                    }
-
-                    .total-amount-value {
-                        color: var(--success-color); /* Kolor dla kwoty do zapłaty */
-                    }
-
-                    /* Opcje płatności */
-                    .payment-options {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Dopasuj do dostępnej szerokości */
-                        gap: var(--spacing-unit);
-                        margin-top: var(--spacing-unit);
-                    }
-
-                    .payment-btn {
-                        padding: 1rem;
-                        font-size: 1.1em;
-                        font-weight: bold;
-                        border: none;
-                        border-radius: 0.25rem;
-                        cursor: pointer;
-                        transition: background-color 0.2s ease, opacity 0.2s ease;
-                        color: var(--white-color);
-                        background-color: var(--primary-color); /* Domyślny kolor */
-                    }
-
-                        .payment-btn.large-btn {
-                            grid-column: span 1; /* Domyślnie zajmuje jedną kolumnę w siatce */
-                            /* Możesz dodać media query, aby zajmowały więcej kolumn na mniejszych ekranach */
-                        }
-
-                    #btnCash {
-                        background-color: var(--success-color);
-                    }
-                    /* Zielony dla GOTÓWKA */
-                    #btnCard {
-                        background-color: var(--info-color);
-                    }
-                    /* Błękitny dla KARTA */
-                    #btnInvoice {
-                        background-color: var(--secondary-color);
-                    }
-                    /* Szary dla FAKTURA */
-
-
-                    .payment-btn:hover {
-                        opacity: 0.9;
-                    }
-
-
-                    /* Dolny pasek (stopka) */
-                    .bottom-bar {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: var(--spacing-unit);
-                        background-color: var(--dark-color);
-                        color: var(--text-light);
-                        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-                        font-size: 0.9em;
-                    }
-
-                    .logout-button .btn-danger { /* Styl przycisku Wyloguj (z Bootstrapa) */
-                        padding: 0.5rem 1rem;
-                    }
-
-                    /* Styl dla przycisku "Losuj Nowe Tankowania" */
-                    #btnRandomizeRefuelings {
-                        margin-bottom: var(--spacing-unit);
-                    }
-
-
-                    /* Style specyficzne dla Modali */
-                    /* Bootstrap domyślnie styluje modale, ale możesz dodać własne poprawki */
-                    .modal-content {
-                        border-radius: 0.5rem;
-                    }
-
-                    .modal-header {
-                        border-bottom: 1px solid var(--border-color);
-                    }
-
-                    .modal-footer {
-                        border-top: 1px solid var(--border-color);
-                    }
-
-                    /* Poprawka dla Select2 w modalu (jeśli nadal używasz Select2 dla produktów) */
-                    .modal .select2-container {
-                        width: 100% !important; /* Wymuś pełną szerokość w modalu */
-                    }
-
-                    /* Styl dla listy wyników wyszukiwania klientów bez Select2 */
-                    #customerSearchResults.list-group-item {
-                        cursor: pointer;
-                        transition: background-color 0.2s ease;
-                    }
-
-                        #customerSearchResults.list-group-item:hover {
-                            background-color: var(--light-color);
-                        }
-
-                    /* Styl dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
-                    #selectedCustomerDetails.alert-info {
-                        background-color: lighten(var(--info-color), 30%);
-                        border-color: var(--info-color);
-                        color: var(--dark-color);
-                    }
-
-                    #selectedCustomerDetails h4 {
-                        color: var(--dark-color);
-                    }
-                </style>
+    <style>
+
+        :root {
+            --primary-color: #007bff;
+            --primary-color-darken10: #0069d9; /* Trochę ciemniejszy primary */
+
+            --secondary-color: #6c757d;
+            --secondary-color-darken10: #545b62; /* Trochę ciemniejszy secondary */
+
+            --success-color: #28a745;
+            --success-color-darken10: #218838; /* Trochę ciemniejszy success */
+
+            --info-color: #17a2b8;
+            --info-color-lighten30: #5bc0de; /* Trochę jaśniejszy info */
+
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --dark-color: #343a40;
+            --dark-color-darken10: #1d2124; /* Trochę ciemniejszy dark */
+
+            --light-color: #f8f9fa;
+            --white-color: #fff;
+            --border-color: #ced4da;
+            --text-color: #212529;
+            --text-light: #f8f9fa;
+            --spacing-unit: 1rem;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--light-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ustawia minimalną wysokość na 100% widocznej części okna */
+        }
+
+        /* Główny kontener interfejsu kasjera */
+        .cashier-interface {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Pozwala main-content na rozciąganie */
+            width: 100%;
+            max-width: 1900px; /* Ogranicz maksymalną szerokość */
+            margin: 0 auto; /* Wyśrodkuj kontener */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtelny cień */
+            background-color: var(--white-color);
+        }
+
+        /* Górny pasek (nagłówek) */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-unit);
+            background-color: var(--dark-color);
+            color: var(--text-light);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+            .top-bar .info-left span,
+            .top-bar .info-center span,
+            .top-bar .info-right .btn {
+                margin-right: var(--spacing-unit);
+            }
+
+        .time-display {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .date-small {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .action-btn { /* Przyciski akcji w nagłówku */
+            background-color: var(--primary-color);
+            color: var(--white-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+            .action-btn:hover {
+                background-color: darken(var(--primary-color), 10%); /* Przyciemnij przy najechaniu (przykład, wymaga preprocesora lub innego sposobu) */
+                opacity: 0.9; /* Alternatywnie zmień przezroczystość */
+            }
+
+        /* Style dla przycisku "Zmień cenę paliwa" z Bootstrapa */
+        .top-bar .btn-primary {
+            margin-right: var(--spacing-unit);
+        }
+
+        .fuel-type-benzyna {
+            background-color: #ffcc00; /* Yellow for Benzyna */
+            color: #333;
+        }
+
+        .fuel-type-diesel {
+            background-color: #6699cc; /* Blue for Diesel */
+            color: #fff;
+        }
+
+        .fuel-type-gaz {
+            background-color: #99cc66; /* Green for Gaz */
+            color: #333;
+        }
+
+        .grid-item-button.active-refueling {
+            border: 3px solid blue;
+            box-shadow: 0 0 8px rgba(0, 0, 255, 0.5);
+        }
+
+        /* Główna zawartość (panele) */
+        .main-content {
+            display: flex;
+            flex-grow: 1;
+            padding: var(--spacing-unit);
+            gap: var(--spacing-unit); /* Odstęp między panelami */
+        }
+
+        /* Panele - wspólne style */
+        .left-panel,
+        .middle-panel,
+        .right-panel {
+            padding: var(--spacing-unit);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            background-color: var(--white-color);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtelny wewnętrzny cień */
+            overflow-y: auto; /* Dodaj scroll, jesli zawartosc bedzie wieksza */
+        }
+
+        .left-panel {
+            flex: 1.5; /* Proporcja szerokości */
+            min-width: 250px; /* Minimalna szerokość, aby uniknąć zgniecenia */
+        }
+
+        .middle-panel {
+            flex: 1; /* Proporcja szerokości */
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-unit);
+        }
+
+        .right-panel {
+            flex: 2; /* Proporcja szerokości */
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Grid dla przycisków dystrybutorów */
+        .css-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Automatycznie dopasowuje kolumny, min 150px szerokosci */
+            gap: var(--spacing-unit);
+            padding: 0; /* Usun padding, bo panel ma juz padding */
+            border: none; /* Usun ramke, bo panel ma juz ramke */
+        }
+
+        /* Styl przycisku dystrybutora */
+        .grid-item-button {
+            /* ... (istniejące style) ... */
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+            /* *** Style kolorów tła i ramki w zależności od data-fuelid *** */
+
+            /* FuelId = 1: Zielony */
+            .grid-item-button[data-fuelid="1"] {
+                background-color: var(--success-color);
+                color: var(--text-light);
+                /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                border-color: var(--success-color-darken10);
+            }
+
+                .grid-item-button[data-fuelid="1"]:hover {
+                    background-color: rgb(0, 128, 0); /* Możesz zostawić konkretny kolor lub użyć innej zmiennej */
+                }
+
+            /* FuelId = 2: Niebieski */
+            .grid-item-button[data-fuelid="2"] {
+                background-color: var(--primary-color);
+                color: var(--text-light);
+                /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                border-color: var(--primary-color-darken10);
+            }
+
+                .grid-item-button[data-fuelid="2"]:hover {
+                    background-color: rgb(0, 0, 255);
+                }
+
+            /* FuelId = 3: Ciemny/Szary */
+            .grid-item-button[data-fuelid="3"] {
+                background-color: var(--dark-color);
+                color: var(--text-light);
+                /* *** Zmieniono: border-color używa nowej zmiennej *** */
+                border-color: var(--dark-color-darken10);
+            }
+
+                .grid-item-button[data-fuelid="3"]:hover {
+                    background-color: rgb(100, 100, 100);
+                }
+
+            /* Styl dla przycisku oznaczony jako 'active-refueling' (jego wartość dodana do sumy) */
+            .grid-item-button.active-refueling {
+                border-color: var(--info-color); /* Zmieniamy kolor ramki na błękitny */
+                box-shadow: 0 0 8px var(--info-color); /* Dodajemy poświatę */
+            }
+
+
+        /* Style dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+        #selectedCustomerDetails.alert-info {
+            /* *** Zmieniono: background-color używa nowej zmiennej *** */
+            background-color: var(--info-color-lighten30);
+            border-color: var(--info-color);
+            color: var(--dark-color);
+        }
+
+        #selectedCustomerDetails h4 {
+            color: var(--dark-color);
+        }
+
+
+        /* Style elementów wewnątrz przycisku */
+        .distributor-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 0.5em; /* Odstęp pod nazwą */
+            /* Kolor tekstu ustawiany w regułach data-fuelid */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtelny cień */
+        }
+
+        .item-calculated-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: auto 0; /* Wyśrodkuj pionowo */
+            /* Kolor tekstu ustawiany w regułach data-fuelid */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .bottom-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            font-size: 0.9em;
+            margin-top: 0.5em; /* Odstęp nad szczegółami */
+            /* Kolor tekstu ustawiany w regułach data-fuelid */
+        }
+
+            .bottom-details .amount-display,
+            .bottom-details .price-display {
+                flex-basis: 50%;
+                padding: 0 5px;
+                box-sizing: border-box;
+                /* Kolor tekstu ustawiany w regułach data-fuelid */
+            }
+
+            .bottom-details .amount-display {
+                text-align: left;
+            }
+
+            .bottom-details .price-display {
+                text-align: right;
+            }
+
+
+        /* Style dla sekcji Produktów (middle-panel) */
+        .display-input-area {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-unit);
+        }
+
+        .item-details-preview {
+            padding: var(--spacing-unit);
+            border: 1px dashed var(--border-color);
+            border-radius: 0.25rem;
+            background-color: var(--light-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        #productDetails h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 1.2em;
+            color: var(--primary-color);
+        }
+
+        #productDetails p {
+            margin: 0 0 0.3rem 0;
+            font-size: 0.9em;
+        }
+
+        /* Style dla przycisków "Dodaj do zamówienia", "Usuń produkt" */
+        .middle-panel .action-btn {
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            font-size: 1em;
+        }
+
+
+        /* Style dla Sekcji Paragonu (right-panel) */
+        .receipt-header {
+            display: grid;
+            grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dostosuj szerokości kolumn */
+            gap: 5px;
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--dark-color);
+            margin-bottom: 5px;
+            color: var(--dark-color);
+        }
+
+        .receipt-items-container {
+            flex-grow: 1; /* Pozwala na rozciąganie listy pozycji */
+            overflow-y: auto; /* Dodaje scroll, jesli lista jest dluga */
+            padding-right: 5px; /* Dodatkowy padding, aby scrollbar nie zasłaniał treści */
+        }
+
+        .receipt-item {
+            display: grid;
+            grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr; /* Dopasuj do nagłówka */
+            gap: 5px;
+            padding: 8px 10px;
+            border-bottom: 1px dashed var(--border-color);
+            align-items: center;
+            font-size: 0.95em;
+        }
+
+            .receipt-item span {
+                overflow: hidden;
+                text-overflow: ellipsis; /* Dodaje ... jesli tekst jest za dlugi */
+                white-space: nowrap; /* Zapobiega zawijaniu tekstu */
+            }
+
+        .receipt-summary {
+            margin-top: 10px;
+            padding: 10px;
+            border-top: 2px solid var(--dark-color);
+            font-size: 1.4em;
+            font-weight: bold;
+            text-align: right;
+            color: var(--dark-color);
+        }
+
+        .total-amount-value {
+            color: var(--success-color); /* Kolor dla kwoty do zapłaty */
+        }
+
+        /* Opcje płatności */
+        .payment-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Dopasuj do dostępnej szerokości */
+            gap: var(--spacing-unit);
+            margin-top: var(--spacing-unit);
+        }
+
+        .payment-btn {
+            padding: 1rem;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+            color: var(--white-color);
+            background-color: var(--primary-color); /* Domyślny kolor */
+        }
+
+            .payment-btn.large-btn {
+                grid-column: span 1; /* Domyślnie zajmuje jedną kolumnę w siatce */
+                /* Możesz dodać media query, aby zajmowały więcej kolumn na mniejszych ekranach */
+            }
+
+        #btnCash {
+            background-color: var(--success-color);
+        }
+        /* Zielony dla GOTÓWKA */
+        #btnCard {
+            background-color: var(--info-color);
+        }
+        /* Błękitny dla KARTA */
+        #btnInvoice {
+            background-color: var(--secondary-color);
+        }
+        /* Szary dla FAKTURA */
+
+
+        .payment-btn:hover {
+            opacity: 0.9;
+        }
+
+
+        /* Dolny pasek (stopka) */
+        .bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-unit);
+            background-color: var(--dark-color);
+            color: var(--text-light);
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 0.9em;
+        }
+
+        .logout-button .btn-danger { /* Styl przycisku Wyloguj (z Bootstrapa) */
+            padding: 0.5rem 1rem;
+        }
+
+        /* Styl dla przycisku "Losuj Nowe Tankowania" */
+        #btnRandomizeRefuelings {
+            margin-bottom: var(--spacing-unit);
+        }
+
+
+        /* Style specyficzne dla Modali */
+        /* Bootstrap domyślnie styluje modale, ale możesz dodać własne poprawki */
+        .modal-content {
+            border-radius: 0.5rem;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Poprawka dla Select2 w modalu (jeśli nadal używasz Select2 dla produktów) */
+        .modal .select2-container {
+            width: 100% !important; /* Wymuś pełną szerokość w modalu */
+        }
+
+        /* Styl dla listy wyników wyszukiwania klientów bez Select2 */
+        #customerSearchResults.list-group-item {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+            #customerSearchResults.list-group-item:hover {
+                background-color: var(--light-color);
+            }
+
+        /* Styl dla div wyświetlającego wybranego klienta w modalu wyboru klienta */
+        #selectedCustomerDetails.alert-info {
+            background-color: lighten(var(--info-color), 30%);
+            border-color: var(--info-color);
+            color: var(--dark-color);
+        }
+
+        #selectedCustomerDetails h4 {
+            color: var(--dark-color);
+        }
+    </style>
 

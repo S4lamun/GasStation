@@ -1,31 +1,90 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using GasStation.Data;
 using GasStation.DTO;
 using GasStation.Models;
 
 namespace GasStation.Services
 {
-	public class FuelService
-	{
+    public class FuelService
+    {
         private readonly GasStationDbContext _context;
-        public FuelService(GasStationDbContext context) 
-		{
-			_context = context; 
-		}
 
-        public List<FuelDTO> GetAllFuels()
+        public FuelService(GasStationDbContext context)
         {
-            var fuels = _context.Fuels.ToList();
-            return fuels.Select(f => new FuelDTO
-            {
-                FuelId = f.FuelId,
-                FuelName = f.FuelName,
-            }).ToList();
+            _context = context;
         }
 
+        // Pobierz wszystkie paliwa (wersja podstawowa)
+        public List<FuelDTO> GetAllFuels()
+        {
+            return _context.Fuels
+                .Select(f => new FuelDTO
+                {
+                    FuelId = f.FuelId,
+                    FuelName = f.FuelName
+                })
+                .ToList();
+        }
+
+        // Pobierz aktualne ceny wszystkich paliw
+        public Dictionary<int, decimal> GetCurrentPrices()
+        {
+            var currentPrices = new Dictionary<int, decimal>();
+            var allFuels = _context.Fuels.ToList();
+
+            foreach (var fuel in allFuels)
+            {
+                var currentPrice = GetCurrentFuelPrice(fuel.FuelId, DateTime.Now);
+                if (currentPrice != null)
+                {
+                    currentPrices.Add(fuel.FuelId, currentPrice.Price);
+                }
+            }
+
+            return currentPrices;
+        }
+
+        // Pobierz aktualną cenę dla konkretnego paliwa
+        public FuelPriceHistory GetCurrentFuelPrice(int fuelId, DateTime atTime)
+        {
+            return _context.FuelPriceHistories
+                .Where(h => h.FuelId == fuelId)
+                .Where(h => h.DateFrom <= atTime)
+                .Where(h => h.DateTo == null || h.DateTo > atTime)
+                .OrderByDescending(h => h.DateFrom)
+                .FirstOrDefault();
+        }
+
+        // Pobierz wszystkie aktualne ceny jako DTO
+        public List<FuelPriceHistoryDTO> GetAllCurrentPrices()
+        {
+            return _context.Fuels
+                .Select(fuel => new
+                {
+                    Fuel = fuel,
+                    CurrentPrice = _context.FuelPriceHistories
+                        .Where(h => h.FuelId == fuel.FuelId)
+                        .Where(h => h.DateFrom <= DateTime.Now)
+                        .Where(h => h.DateTo == null || h.DateTo > DateTime.Now)
+                        .OrderByDescending(h => h.DateFrom)
+                        .FirstOrDefault()
+                })
+                .Where(x => x.CurrentPrice != null)
+                .Select(x => new FuelPriceHistoryDTO
+                {
+                    FuelPriceHistoryId = x.CurrentPrice.FuelPriceHistoryId,
+                    Price = x.CurrentPrice.Price,
+                    DateFrom = x.CurrentPrice.DateFrom,
+                    DateTo = x.CurrentPrice.DateTo,
+                    FuelId = x.CurrentPrice.FuelId,
+                    FuelName = x.Fuel.FuelName
+                })
+                .ToList();
+        }
+
+        // Pozostałe metody bez zmian
         public FuelDTO AddFuel(FuelDTO fuelDTO)
         {
             var fuel = new Fuel
@@ -34,7 +93,11 @@ namespace GasStation.Services
             };
             _context.Fuels.Add(fuel);
             _context.SaveChanges();
-            return fuelDTO;
+            return new FuelDTO
+            {
+                FuelId = fuel.FuelId,
+                FuelName = fuel.FuelName
+            };
         }
 
         public void RemoveFuel(FuelDTO fuelDTO)
@@ -52,7 +115,7 @@ namespace GasStation.Services
             var fuel = _context.Fuels.Find(fuelId);
             if (fuel == null)
             {
-                return null; // Fuel not found
+                return null;
             }
             return new FuelDTO
             {
@@ -60,64 +123,5 @@ namespace GasStation.Services
                 FuelName = fuel.FuelName,
             };
         }
-
-
-        public FuelPriceHistory GetCurrentFuelPrice(int fuelId, DateTime atTime)
-        {
-            var currentPrice = _context.FuelPriceHistories
-                                   .Where(h => h.FuelId == fuelId)
-                                   .Where(h => h.DateFrom <= atTime) // Start date is on or before the time
-                                   .Where(h => h.DateTo == null || h.DateTo > atTime) // End date is null OR after the time
-                                   .OrderByDescending(h => h.DateFrom) // Get the most recent applicable price
-                                   .FirstOrDefault();
-
-            return currentPrice; // Returns the entity or null
-        }
-		public List<FuelPriceHistoryDTO> GetAllCurrentPrices()
-		{
-			// Pobierz listę wszystkich paliw z bazy. Potrzebujemy FuelId każdego paliwa.
-			var allFuels = _context.Fuels.ToList(); // Zakładamy, że masz kolekcję Fuels w kontekscie (_context.Fuels)
-
-			// Utwórz pustą listę, do której będziemy dodawać DTO z aktualnymi cenami
-			var currentPricesDTOs = new List<FuelPriceHistoryDTO>();
-
-			// Przejdź przez każde paliwo, aby znaleźć jego aktualną cenę
-			foreach (var fuel in allFuels)
-			{
-				// Wywołaj metodę GetCurrentFuelPrice, aby znaleźć encję historii cen aktywną TERAZ
-				var currentPriceHistoryEntity = GetCurrentFuelPrice(fuel.FuelId, DateTime.Now);
-
-				// Jeśli znaleziono encję historii cen dla tego paliwa (czyli jest aktywna cena)
-				if (currentPriceHistoryEntity != null)
-				{
-					// Stwórz nowy obiekt FuelPriceHistoryDTO i zmapuj na niego dane z encji FuelPriceHistory
-					currentPricesDTOs.Add(new FuelPriceHistoryDTO
-					{
-						FuelPriceHistoryId = currentPriceHistoryEntity.FuelPriceHistoryId, // Mapowanie Id historii ceny
-						Price = currentPriceHistoryEntity.Price, // *** Mapowanie WŁAŚCIWEJ WŁAŚCIWOŚCI Z CENĄ z encji FuelPriceHistory ***
-						DateFrom = currentPriceHistoryEntity.DateFrom, // Mapowanie daty rozpoczęcia
-						DateTo = currentPriceHistoryEntity.DateTo,     // Mapowanie daty zakończenia (może być null)
-						FuelId = currentPriceHistoryEntity.FuelId,     // Mapowanie Id paliwa
-																	   // Pamiętaj, że FuelPriceHistoryDTO zawiera FuelName i EmployeeFullName/Pesel.
-																	   // Jeśli potrzebujesz tych danych w tym DTO, a nie są one bezpośrednio w encji FuelPriceHistory,
-																	   // musisz je pobrać z powiązanych encji Fuel i Employee i zmapować tutaj.
-																	   // Jeśli na froncie potrzebujesz tylko FuelId i Price, te pola w DTO mogą być puste.
-																	   // Przykład pobrania nazwy paliwa z encji Fuel, jeśli FuelPriceHistoryEntity jej nie zawiera:
-																	   // FuelName = fuel.FuelName 
-					});
-				}
-				// Jeśli dla danego FuelId nie ma aktywnej ceny (GetCurrentFuelPrice zwróci null), 
-				// to paliwo nie zostanie dodane do listy zwracanych DTO z cenami.
-			}
-
-			return currentPricesDTOs; // Zwróć listę DTO z aktualnymi cenami
-		}
-
-		// ... Tutaj mogą znajdować się inne metody serwisu FuelService, 
-		// np. do dodawania/usuwania paliw, zarządzania cenami, itp. ...
-		// public List<FuelDTO> GetAllFuels() { ... }
-		// public FuelDTO AddFuel(CreateFuelDTO fuelDTO) { ... } 
-		// public void UpdateFuelPrice(CreateFuelPriceHistoryDTO priceDTO) { ... }
-	}
+    }
 }
-
