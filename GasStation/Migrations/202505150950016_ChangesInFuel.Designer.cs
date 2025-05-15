@@ -7,13 +7,13 @@ namespace GasStation.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.5.1")]
-    public sealed partial class InitialCreate2 : IMigrationMetadata
+    public sealed partial class ChangesInFuel : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(InitialCreate2));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(ChangesInFuel));
         
         string IMigrationMetadata.Id
         {
-            get { return "202505081115282_InitialCreate2"; }
+            get { return "202505150950016_ChangesInFuel"; }
         }
         
         string IMigrationMetadata.Source

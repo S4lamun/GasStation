@@ -185,9 +185,9 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\Helper.cs" />
-    <Compile Include="Migrations\202505081115282_InitialCreate2.cs" />
-    <Compile Include="Migrations\202505081115282_InitialCreate2.Designer.cs">
-      <DependentUpon>202505081115282_InitialCreate2.cs</DependentUpon>
+    <Compile Include="Migrations\202505150950016_ChangesInFuel.cs" />
+    <Compile Include="Migrations\202505150950016_ChangesInFuel.Designer.cs">
+      <DependentUpon>202505150950016_ChangesInFuel.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Customer.cs" />
@@ -284,8 +284,8 @@
     <Content Include="Scripts\jquery-3.7.1.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202505081115282_InitialCreate2.resx">
-      <DependentUpon>202505081115282_InitialCreate2.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202505150950016_ChangesInFuel.resx">
+      <DependentUpon>202505150950016_ChangesInFuel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

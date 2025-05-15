@@ -3,7 +3,7 @@
     using System;
     using System.Data.Entity.Migrations;
     
-    public partial class InitialCreate2 : DbMigration
+    public partial class ChangesInFuel : DbMigration
     {
         public override void Up()
         {
@@ -68,7 +68,6 @@
                     {
                         FuelId = c.Int(nullable: false, identity: true),
                         FuelName = c.String(nullable: false, maxLength: 50),
-                        DistributorNumber = c.String(nullable: false, maxLength: 50),
                     })
                 .PrimaryKey(t => t.FuelId);
             

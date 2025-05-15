@@ -23,7 +23,6 @@ namespace GasStation.Services
             {
                 FuelId = f.FuelId,
                 FuelName = f.FuelName,
-                DistributorNumber = f.DistributorNumber
             }).ToList();
         }
 
@@ -32,7 +31,6 @@ namespace GasStation.Services
             var fuel = new Fuel
             {
                 FuelName = fuelDTO.FuelName,
-                DistributorNumber = fuelDTO.DistributorNumber
             };
             _context.Fuels.Add(fuel);
             _context.SaveChanges();
@@ -60,7 +58,6 @@ namespace GasStation.Services
             {
                 FuelId = fuel.FuelId,
                 FuelName = fuel.FuelName,
-                DistributorNumber = fuel.DistributorNumber
             };
         }
 

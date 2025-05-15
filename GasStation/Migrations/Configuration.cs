@@ -138,9 +138,9 @@ namespace GasStation.Migrations
 			// Dodajemy podstawowe typy paliw
 			var fuels = new List<Fuel>
 			{
-				new Fuel { FuelName = "Benzyna 95", DistributorNumber = "Dystr1" },
-				new Fuel { FuelName = "Diesel", DistributorNumber = "Dystr2" },
-				new Fuel { FuelName = "LPG", DistributorNumber = "Dystr3" },
+				new Fuel { FuelName = "Benzyna"},
+				new Fuel { FuelName = "Diesel"},
+				new Fuel { FuelName = "LPG" },
 
 			};
 
@@ -195,7 +195,7 @@ namespace GasStation.Migrations
 			var adminEmployee = context.Employees.Single(e => e.Pesel == "22334455667");
 			var januszEmployee = context.Employees.Single(e => e.Pesel == "55667788990");
 
-			var benzyna95 = context.Fuels.Single(f => f.FuelName == "Benzyna 95");
+			var benzyna = context.Fuels.Single(f => f.FuelName == "Benzyna");
 			var diesel = context.Fuels.Single(f => f.FuelName == "Diesel");
 			var lpg = context.Fuels.Single(f => f.FuelName == "LPG");
 			Trace.TraceInformation("Employees and Fuels retrieved.");
@@ -203,10 +203,10 @@ namespace GasStation.Migrations
 
 			var priceHistories = new List<FuelPriceHistory>
 			{
-                // Historia cen dla Benzyny 95 (dwie zmiany ceny)
+                // Historia cen dla Benzyny 
                 new FuelPriceHistory
 				{
-					Fuel = benzyna95, // Powiąż z obiektem paliwa
+					Fuel = benzyna, // Powiąż z obiektem paliwa
                     Price = 6.50m, // Użyj 'm' dla typu decimal
                     DateFrom = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc), // Data rozpoczęcia obowiązywania ceny
                     DateTo = new DateTime(2025, 5, 7, 23, 59, 59, DateTimeKind.Utc), // Data zakończenia obowiązywania ceny
@@ -214,7 +214,7 @@ namespace GasStation.Migrations
                 },
 				 new FuelPriceHistory
 				{
-					Fuel = benzyna95,
+					Fuel = benzyna,
 					Price = 6.70m,
 					DateFrom = new DateTime(2025, 5, 8, 0, 0, 0, DateTimeKind.Utc), // Nowa cena od tej daty
                     DateTo = null, // null oznacza cenę aktualnie obowiązującą
@@ -234,9 +234,9 @@ namespace GasStation.Migrations
 				{
 					Fuel = diesel,
 					Price = 6.45m,
-					DateFrom = new DateTime(2025, 5, 8, 0, 0, 0, DateTimeKind.Utc),
+					DateFrom = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc),
 					DateTo = null,
-					Employee = adminEmployee
+                    Employee = adminEmployee
 				},
 
                 // Historia cen dla LPG (jedna cena)
@@ -244,7 +244,7 @@ namespace GasStation.Migrations
 				{
 					Fuel = lpg,
 					Price = 2.80m,
-					DateFrom = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+					DateFrom = new DateTime(2025, 5, 9, 0, 0, 0, DateTimeKind.Utc),
 					DateTo = null, // Cena aktualna od tej daty
                     Employee = januszEmployee // Przykładowa cena ustalona przez innego pracownika
                 },

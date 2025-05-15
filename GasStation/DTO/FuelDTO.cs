@@ -11,7 +11,7 @@ namespace GasStation.DTO
     {
         public int FuelId { get; set; } // ID będzie generowane
         public string FuelName { get; set; }
-        public string DistributorNumber { get; set; }
+       
     }
 
     public class CreateFuelDTO
@@ -20,8 +20,5 @@ namespace GasStation.DTO
         [StringLength(50, ErrorMessage = "Nazwa paliwa nie może przekraczać 50 znaków.")]
         public string FuelName { get; set; }
 
-        [Required(ErrorMessage = "Numer dystrybutora jest wymagany.")]
-        [StringLength(50, ErrorMessage = "Numer dystrybutora nie może przekraczać 50 znaków.")]
-        public string DistributorNumber { get; set; }
     }
 }
