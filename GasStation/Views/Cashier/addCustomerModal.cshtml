@@ -1,0 +1,24 @@
+﻿<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <!- Opcjonalnie modal-lg dla szerszego modala ->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel">Dodaj Nowego Klienta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
+            <div class="modal-body">
+                @* Używamy unikalnego ID dla formularza w modalu *@
+                <form id="ajaxAddCustomerForm">
+                    @* Renderujemy widok częściowy z formularzem.
+                        Przekazujemy nową, pustą instancję CustomerDTO. *@
+                    @Html.Partial("~/Views/Customer/_CreateCustomerForm.cshtml", new GasStation.DTO.CustomerDTO())
+                </form>
+                <div id="addCustomerModalAlertPlaceholder" class="mt-3"></div> @* Miejsce na komunikaty *@
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCustomerAjax">Zapisz Klienta</button>
+            </div>
+        </div>
+    </div>
+</div>

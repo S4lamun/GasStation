@@ -1,395 +1,402 @@
-﻿/* Ogólne resetowanie i podstawowe style */
-body {
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Przykładowa czcionka */
+﻿:root {
+	--primary-color: #007bff;
+	--primary-color-darken10: #0069d9;
+	--secondary-color: #6c757d;
+	--secondary-color-darken10: #545b62;
+	--success-color: #28a745;
+	--success-color-darken10: #218838;
+	--info-color: #17a2b8;
+	--info-color-lighten30: #5bc0de;
+	--warning-color: #ffc107;
+	--danger-color: #dc3545;
+	--dark-color: #343a40;
+	--dark-color-darken10: #1d2124;
+	--light-color: #f8f9fa;
+	--white-color: #fff;
+	--border-color: #ced4da;
+	--text-color: #212529;
+	--text-light: #f8f9fa;
+	--spacing-unit: 1rem;
+}
+
+html, body {
+	font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	line-height: 1.6;
+	color: var(--text-color);
+	background-color: var(--light-color);
 	margin: 0;
-	background-color: #f4f4f4; /* Tło dla całej strony, jeśli layout kasjera nie zajmuje całości */
-	color: #333;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+
 }
 
 .cashier-interface {
 	display: flex;
 	flex-direction: column;
-	height: 100vh; /* Zajmuje całą wysokość ekranu */
-	background-color: #2c3e50; /* Ciemne tło głównego interfejsu */
-	color: #ecf0f1; /* Jasny tekst */
-	overflow: hidden; /* Zapobiega scrollowaniu głównego interfejsu */
+	flex-grow: 1;
+	width: 100%;
+	max-width: 1900px;
+	margin: 0 auto;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	background-color: var(--white-color);
 }
 
-/* --- Górny Pasek --- */
 .top-bar {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 10px 20px;
-	background-color: #34495e; /* Nieco jaśniejszy od tła */
-	border-bottom: 1px solid #4a627a;
-	font-size: 0.9em;
+	padding: var(--spacing-unit);
+	background-color: var(--dark-color);
+	color: var(--text-light);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-	.top-bar .info-left,
-	.top-bar .info-right {
-		display: flex;
-		gap: 15px; /* Odstęp między elementami */
+	.top-bar .info-left span,
+	.top-bar .info-center span,
+	.top-bar .info-right .btn {
+		margin-right: var(--spacing-unit);
 	}
 
-	.top-bar .info-center {
-		font-size: 1.2em;
-		font-weight: bold;
-	}
-
-	.top-bar .time-display .date-small {
-		font-size: 0.7em;
-		display: block;
-		text-align: center;
-		color: #bdc3c7;
-	}
-
-.btn-management {
-	background-color: #e74c3c;
-	color: white;
-	padding: 8px 15px;
-	text-decoration: none;
-	border-radius: 4px;
+.time-display {
+	font-size: 1.2em;
 	font-weight: bold;
 }
 
-	.btn-management:hover {
-		background-color: #c0392b;
-	}
-
-
-/* --- Główna Zawartość --- */
-.main-content {
-	display: flex;
-	flex-grow: 1; /* Pozwala tej sekcji rozciągnąć się i wypełnić dostępną przestrzeń */
-	overflow: hidden; /* Zapobiega scrollowaniu, jeśli panele mają własne scrollowanie */
+.date-small {
+	font-size: 0.8em;
+	opacity: 0.8;
 }
 
-/* --- Lewy Panel (Paragon) --- */
+.action-btn {
+	background-color: var(--primary-color);
+	color: var(--white-color);
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+	.action-btn:hover {
+		background-color: var(--primary-color-darken10);
+		opacity: 0.9;
+	}
+
+.top-bar .btn-primary {
+	margin-right: var(--spacing-unit);
+}
+
+
+
+.main-content {
+	flex: 1 1 auto;
+	display: grid;
+	grid-template-columns: 2fr 1fr 3fr;
+	grid-gap: var(--spacing-unit);
+	gap: calc(var(--spacing-unit) * 1.5);
+	min-height: 75vh;
+}
+
+.left-panel,
+.middle-panel,
+.right-panel {
+	padding: var(--spacing-unit);
+	border: 1px solid var(--border-color);
+	border-radius: 0.25rem;
+	background-color: var(--white-color);
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+	overflow-y: auto;
+}
+
 .left-panel {
-	width: 35%; /* Dostosuj szerokość */
-	background-color: #34495e;
-	padding: 15px;
+	flex: 1.5;
+	min-width: 250px;
+}
+
+.action-btn, .payment-btn, .btn-primary {
+	transition: transform 0.5s ease, box-shadow .1s ease;
+}
+
+	.action-btn:hover, .payment-btn:hover, .btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+	}
+
+.middle-panel {
+	flex: 1;
+	min-width: 200px;
 	display: flex;
 	flex-direction: column;
-	border-right: 1px solid #4a627a;
+	gap: var(--spacing-unit);
+}
+
+.right-panel {
+	flex: 2;
+	min-width: 300px;
+	display: flex;
+	flex-direction: column;
+}
+
+.css-grid-container {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: var(--spacing-unit);
+	padding: 0;
+	border: none;
+}
+
+.grid-item-button {
+	border: 1px solid var(--border-color);
+	border-radius: 0.25rem;
+	transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+	.grid-item-button[data-id="1"] {
+		background-color: var(--success-color);
+		color: var(--text-light);
+		border-color: var(--success-color-darken10);
+	}
+
+		.grid-item-button[data-id="1"]:hover {
+			background-color: rgb(0, 128, 0);
+		}
+
+	.grid-item-button[data-id="3"] {
+		background-color: var(--primary-color);
+		color: var(--text-light);
+		border-color: var(--primary-color-darken10);
+	}
+
+		.grid-item-button[data-id="3"]:hover {
+			background-color: rgb(0, 0, 255);
+		}
+
+	.grid-item-button[data-id="2"] {
+		background-color: var(--dark-color);
+		color: var(--text-light);
+		border-color: var(--dark-color-darken10);
+	}
+
+		.grid-item-button[data-id="2"]:hover {
+			background-color: rgb(100, 100, 100);
+		}
+
+	.grid-item-button.active-refueling {
+		border-color: var(--info-color);
+		box-shadow: 0 0 8px var(--info-color);
+	}
+
+#selectedCustomerDetails.alert-info {
+	background-color: var(--info-color-lighten30);
+	border-color: var(--info-color);
+	color: var(--dark-color);
+}
+
+#selectedCustomerDetails h4 {
+	color: var(--dark-color);
+}
+
+.distributor-name {
+	font-size: 1.1em;
+	font-weight: bold;
+	margin-bottom: 0.5em;
+	text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.item-calculated-value {
+	font-size: 1.8em;
+	font-weight: bold;
+	margin: auto 0;
+	text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.bottom-details {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	font-size: 0.9em;
+	margin-top: 0.5em;
+}
+
+	.bottom-details .amount-display,
+	.bottom-details .price-display {
+		flex-basis: 50%;
+		padding: 0 5px;
+		box-sizing: border-box;
+	}
+
+	.bottom-details .amount-display {
+		text-align: left;
+	}
+
+	.bottom-details .price-display {
+		text-align: right;
+	}
+
+.display-input-area {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-unit);
+}
+
+.item-details-preview {
+	padding: var(--spacing-unit);
+	border: 1px dashed var(--border-color);
+	border-radius: 0.25rem;
+	background-color: var(--light-color);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+#productDetails h3 {
+	margin-top: 0;
+	margin-bottom: 0.5rem;
+	font-size: 1.2em;
+	color: var(--primary-color);
+}
+
+#productDetails p {
+	margin: 0 0 0.3rem 0;
+	font-size: 0.9em;
+}
+
+.middle-panel .action-btn {
+	width: 100%;
+	margin-top: 0.5rem;
+	padding: 0.75rem;
+	font-size: 1em;
 }
 
 .receipt-header {
 	display: grid;
-	grid-template-columns: 30px 3fr 1fr 1fr 1.5fr 30px; /* Dostosuj kolumny */
+	grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr;
+	gap: 5px;
+	padding: 10px;
 	font-weight: bold;
-	padding-bottom: 8px;
-	border-bottom: 1px solid #7f8c8d;
-	font-size: 0.8em;
+	border-bottom: 1px solid var(--dark-color);
+	margin-bottom: 5px;
+	color: var(--dark-color);
 }
-
-	.receipt-header span {
-		padding: 0 5px;
-	}
 
 .receipt-items-container {
 	flex-grow: 1;
-	overflow-y: auto; /* Scrollowanie tylko dla listy produktów */
-	font-size: 0.9em;
+	overflow-y: auto;
+	padding-right: 5px;
 }
 
 .receipt-item {
 	display: grid;
-	grid-template-columns: 30px 3fr 1fr 1fr 1.5fr 30px; /* Takie same jak header */
-	padding: 8px 0;
-	border-bottom: 1px dotted #566573;
+	grid-template-columns: 0.5fr 3fr 1fr 1.2fr 1.2fr 0.5fr;
+	gap: 5px;
+	padding: calc(var(--spacing-unit) * 0.75);
+	border-bottom: 1px dashed var(--border-color);
 	align-items: center;
+	font-size: 0.95em;
 }
 
 	.receipt-item span {
-		padding: 0 5px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-
-	.receipt-item.highlighted {
-		background-color: #f39c12; /* Kolor podświetlenia jak na zdjęciu */
-		color: #2c3e50;
-		font-weight: bold;
-	}
-
-.btn-delete-item {
-	background-color: #e74c3c;
-	color: white;
-	border: none;
-	border-radius: 3px;
-	cursor: pointer;
-	padding: 3px 6px;
-	font-size: 0.8em;
-}
 
 .receipt-summary {
-	margin-top: auto; /* Wypycha podsumowanie na dół */
-	padding-top: 15px;
-	border-top: 1px solid #7f8c8d;
-}
-
-	.receipt-summary div {
-		display: flex;
-		justify-content: space-between;
-		font-size: 1.1em;
-		margin-bottom: 5px;
-	}
-
-	.receipt-summary .total-amount-value {
-		font-size: 1.8em;
-		font-weight: bold;
-		color: #2ecc71; /* Zielony dla kwoty całkowitej */
-	}
-
-	.receipt-summary .subtotal-amount-value {
-		font-size: 1em;
-		color: #bdc3c7;
-	}
-
-
-/* --- Środkowy Panel (Klawiatura) --- */
-.middle-panel {
-	width: 30%; /* Dostosuj szerokość */
-	background-color: #2c3e50; /* Może być takie samo jak tło interfejsu */
-	padding: 15px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	border-right: 1px solid #4a627a;
-}
-
-.display-input-area {
-	width: 100%;
-	margin-bottom: 15px;
-}
-
-#IdInput {
-	width: calc(100% - 22px); /* Uwzględnij padding */
+	margin-top: 10px;
 	padding: 10px;
-	margin-bottom: 10px;
-	border: 1px solid #7f8c8d;
-	background-color: #ecf0f1;
-	color: #2c3e50;
-	font-size: 1em;
-	border-radius: 3px;
-}
-
-.item-details-preview {
-	background-color: #34495e;
-	padding: 10px;
-	border-radius: 3px;
-	min-height: 60px; /* Miejsce na podgląd */
-	font-size: 0.9em;
-	text-align: center;
-}
-
-	.item-details-preview .price-preview {
-		font-weight: bold;
-		color: #f1c40f;
-	}
-
-.numpad-area {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 8px;
-	width: 100%;
-	max-width: 300px; /* Ogranicz szerokość klawiatury */
-}
-
-.numpad-btn {
-	padding: 15px;
-	font-size: 1.2em;
+	border-top: 2px solid var(--dark-color);
+	font-size: 1.4em;
 	font-weight: bold;
-	border: none;
-	border-radius: 5px;
-	cursor: pointer;
-	background-color: #566573;
-	color: #ecf0f1;
-	transition: background-color 0.2s;
+	text-align: right;
+	color: var(--dark-color);
 }
 
-	.numpad-btn:hover {
-		background-color: #7f8c8d;
-	}
-
-	.numpad-btn.function-btn {
-		background-color: #e67e22; /* Pomarańczowy dla funkcji */
-	}
-
-		.numpad-btn.function-btn:hover {
-			background-color: #d35400;
-		}
-
-	.numpad-btn.wide-btn {
-		grid-column: span 2; /* Przycisk zajmujący dwie kolumny */
-	}
-
-
-/* --- Prawy Panel (Promocje, Płatności) --- */
-.right-panel {
-	width: 35%; /* Dostosuj szerokość */
-	background-color: #34495e; /* Może być jaśniejszy dla odróżnienia */
-	padding: 15px;
-	display: flex;
-	flex-direction: column;
-	gap: 15px; /* Odstęp między sekcjami promocji i płatności */
+.total-amount-value {
+	color: var(--success-color);
 }
-
-.promotions-quick-access h4 {
-	margin-top: 0;
-	margin-bottom: 10px;
-	color: #f1c40f; /* Żółty dla nagłówka */
-	text-align: center;
-}
-
-.promotions-quick-access {
-	display: flex; /* Można użyć grida lub flexa do ułożenia kafelków */
-	flex-wrap: wrap; /* Jeśli jest więcej niż się mieści */
-	gap: 10px;
-	justify-content: center;
-}
-
-.promo-item {
-	background-color: #566573;
-	padding: 10px;
-	border-radius: 5px;
-	text-align: center;
-	width: calc(33.333% - 10px); /* Około 3 w rzędzie, uwzględniając gap */
-	min-width: 120px;
-	box-sizing: border-box;
-}
-
-	.promo-item img {
-		max-width: 80px;
-		max-height: 60px;
-		margin-bottom: 5px;
-		border: 1px solid #7f8c8d;
-	}
-
-	.promo-item span {
-		display: block;
-		font-size: 0.8em;
-		margin-bottom: 3px;
-	}
-
-	.promo-item .price {
-		font-weight: bold;
-		font-size: 1.1em;
-		color: #2ecc71;
-	}
 
 .payment-options {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Responsywne przyciski */
-	gap: 8px;
-	margin-top: auto; /* Wypycha opcje płatności w dół, jeśli jest miejsce */
+	grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+	gap: var(--spacing-unit);
+	margin-top: var(--spacing-unit);
 }
 
-.payment-btn, .action-btn {
-	padding: 12px 8px;
-	font-size: 0.9em;
+.payment-btn {
+	padding: 1rem;
+	font-size: 1.1em;
 	font-weight: bold;
 	border: none;
-	border-radius: 5px;
+	border-radius: 0.25rem;
 	cursor: pointer;
-	background-color: #3498db; /* Niebieski dla płatności */
-	color: white;
-	transition: background-color 0.2s;
-	text-align: center;
+	transition: background-color 0.2s ease, opacity 0.2s ease;
+	color: var(--white-color);
+	background-color: var(--primary-color);
 }
-
-	.payment-btn:hover, .action-btn:hover {
-		background-color: #2980b9;
-	}
 
 	.payment-btn.large-btn {
-		padding: 18px 10px;
-		font-size: 1.1em;
-		background-color: #27ae60; /* Zielony dla głównych płatności */
+		grid-column: span 1;
 	}
 
-		.payment-btn.large-btn:hover {
-			background-color: #229954;
-		}
-
-.action-btn {
-	background-color: #8e44ad; /* Fioletowy dla akcji */
+#btnCash {
+	background-color: var(--success-color);
 }
 
-	.action-btn:hover {
-		background-color: #732d91;
-	}
+#btnCard {
+	background-color: var(--info-color);
+}
 
+#btnInvoice {
+	background-color: var(--secondary-color);
+}
 
-/* --- Dolny Pasek --- */
+.payment-btn:hover {
+	opacity: 0.9;
+}
+
 .bottom-bar {
 	display: flex;
-	justify-content: center; /* Lub space-around */
+	justify-content: space-between;
 	align-items: center;
-	padding: 8px 20px;
-	background-color: #1c2833; /* Najciemniejszy */
-	font-size: 0.8em;
-	gap: 20px;
-	border-top: 1px solid #4a627a;
+	padding: var(--spacing-unit);
+	background-color: var(--dark-color);
+	color: var(--text-light);
+	box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+	font-size: 0.9em;
 }
 
-	.bottom-bar span {
-		color: #bdc3c7;
-	}
+.logout-button .btn-danger {
+	padding: 0.5rem 1rem;
+}
 
-.logout-button {
-	margin-left: auto; /* Wyrównuje do prawej */
-	color: #e74c3c !important;
-	font-weight: bold;
+#btnRandomizeRefuelings {
+	margin-bottom: var(--spacing-unit);
+}
+
+.modal-content {
+	border-radius: 0.5rem;
+}
+
+.modal-header {
+	border-bottom: 1px solid var(--border-color);
+}
+
+.modal-footer {
+	border-top: 1px solid var(--border-color);
+}
+
+.modal .select2-container {
+	width: 100% !important;
+}
+
+#customerSearchResults.list-group-item {
 	cursor: pointer;
+	transition: background-color 0.2s ease;
 }
 
-	.logout-button:hover {
-		text-decoration: underline;
+	#customerSearchResults.list-group-item:hover {
+		background-color: var(--light-color);
 	}
-
-/* Dodatkowe style dla responsywności, jeśli potrzebne */
-@media (max-width: 1200px) {
-	/* Dostosuj layout dla mniejszych ekranów, np. zmiana szerokości paneli, ukrywanie mniej ważnych elementów */
-	.left-panel {
-		width: 40%;
-	}
-
-	.middle-panel {
-		width: 25%;
-	}
-
-	.right-panel {
-		width: 35%;
-	}
-
-	.promo-item {
-		width: calc(50% - 10px);
-	}
-}
-
-@media (max-width: 992px) {
-	.main-content {
-		flex-direction: column;
-		height: auto;
-	}
-	/* Układanie paneli jeden pod drugim */
-	.left-panel, .middle-panel, .right-panel {
-		width: 100%;
-		height: auto; /* Lub określone minimalne wysokości */
-		border-right: none;
-		border-bottom: 1px solid #4a627a;
-	}
-
-	.receipt-items-container {
-		max-height: 300px;
-	}
-	/* Ograniczenie wysokości listy na mobilnych */
-	.numpad-area {
-		max-width: none;
-	}
-
-	.payment-options {
-		grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-	}
-}
