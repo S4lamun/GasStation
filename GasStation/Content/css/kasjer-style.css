@@ -138,19 +138,36 @@ html, body {
 	display: flex;
 	flex-direction: column;
 }
-
+.amount-display {
+	/* większa czcionka */
+	font-size: 2rem;
+	font-weight: bold;
+	/* wyśrodkowanie tekstu w elemencie */
+	text-align: center;
+	/* spraw, by element wypełnił całą dostępną przestrzeń rodzica i wyrównał się pionowo */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* jeśli chcesz, aby miał ustaloną wysokość: */
+	min-height: 3rem;
+	/* kolor jak było */
+	color: red;
+}
 .css-grid-container {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-	gap: var(--spacing-unit);
+	/*	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));*/
 	padding: 0;
 	border: none;
+	grid-template-columns: repeat(2, 1fr);
+	grid-auto-rows: minmax(150px, auto); /* minimalna wysokość rzutu */
+	gap: var(--spacing-unit);
 }
 
 .grid-item-button {
 	border: 1px solid var(--border-color);
 	border-radius: 0.25rem;
 	transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+	aspect-ratio: 1 / 0.9;
 }
 
 	.grid-item-button[data-id="1"] {

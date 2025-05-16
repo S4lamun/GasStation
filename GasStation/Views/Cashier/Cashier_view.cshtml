@@ -326,8 +326,8 @@
 
                         // Aktualizuj wyświetlane wartości
                         text(b, '.distributor-name', fuelName);
-                        text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
-                        text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
+                        text(b, '.amount-display', `${amount.replace('.', ',')} L`);
+                        text(b, '.price-display', `${fmtPLN(price)} zł/L`);
                         text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
 
                         applyFuelColorsToButton(b);
