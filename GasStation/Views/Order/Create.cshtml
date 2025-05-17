@@ -104,24 +104,36 @@
             return;
         }
 
-        const orderItems = getOrderItems();
+        // Pobieramy dane zamówienia z poprawnym mapowaniem
+        const orderItems = getOrderItemsFixed();
+
+        // Pokazujemy szczegółowe dane w konsoli
+        console.log("Szczegóły zamówienia:", orderItems);
 
         const orderData = {
             EmployeePesel: employeePesel,
             CustomerNip: document.getElementById('customerSelect').value || null,
             PaymentType: paymentType,
             Items: orderItems.items,
-            RefuelingEntries: orderItems.fuelEntries // Teraz to będzie poprawnie mapowane
+            RefuelingEntries: orderItems.fuelEntries
         };
 
+        console.log("JSON zamówienia:", JSON.stringify(orderData, null, 2));
+
         try {
+            console.log("Wysyłanie żądania do /Order/Create...");
             const response = await fetch('/Order/Create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify(orderData)
             });
 
+            console.log("Otrzymana odpowiedź:", response);
             const result = await response.json();
+            console.log("Dane odpowiedzi:", result);
 
             if (!response.ok) {
                 throw new Error(result.message || 'Błąd serwera');
@@ -130,7 +142,7 @@
             if (result.success) {
                 alert('Zamówienie zostało złożone!');
                 bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-                // Clear the receipt or refresh the page
+                clearReceipt();
             } else {
                 throw new Error(result.message || 'Nie udało się złożyć zamówienia');
             }
@@ -140,36 +152,90 @@
         }
     });
 
-
-    function getOrderItems() {
+    // Poprawiona i bardziej szczegółowa funkcja do pobierania danych z paragonu
+    function getOrderItemsFixed() {
         const items = [];
         const fuelEntries = [];
 
-        document.querySelectorAll('#receiptItems .receipt-item').forEach(item => {
-            const isFuel = item.dataset.fuelId !== undefined;
-            const quantityText = item.children[2].textContent;
-            const quantity = parseFloat(quantityText.replace(/[^\d.]/g, ''));
-            const price = parseFloat(item.children[3].textContent.replace(/[^\d.]/g, ''));
+        const receiptItems = document.querySelectorAll('#receiptItems .receipt-item');
+        console.log("Znaleziono elementów paragonu:", receiptItems.length);
 
-            if (isFuel) {
+        receiptItems.forEach((item, index) => {
+            console.log(`Analizuję element paragonu ${index + 1}:`, item);
+
+            // Sprawdzamy dokładnie atrybuty data-
+            console.log("Atrybuty data:", {
+                "data-fuel-id": item.getAttribute('data-fuel-id'),
+                "dataset.fuelId": item.dataset.fuelId,
+                "data-product-id": item.getAttribute('data-product-id'),
+                "dataset.productId": item.dataset.productId
+            });
+
+            // Sprawdzamy zawartość HTML elementu
+            console.log("Zawartość HTML:", item.innerHTML);
+
+            // Pozyskujemy dane z kolumn
+            const columns = item.querySelectorAll('span');
+            const columnData = Array.from(columns).map(col => col.textContent.trim());
+            console.log("Dane kolumn:", columnData);
+
+            // Określamy typ elementu - paliwo czy produkt
+            const fuelId = item.dataset.fuelId;
+            const productId = item.dataset.productId;
+
+            // Teraz poprawnie odczytujemy dane z kolumn
+            const name = columnData[1] || '';
+            const quantityText = columnData[2] || '0';
+            const priceText = columnData[3] || '0';
+
+            // Konwertujemy liczby
+            const quantity = parseFloat(quantityText.replace(/[^\d,.]/g, '').replace(',', '.'));
+            const price = parseFloat(priceText.replace(/[^\d,.]/g, '').replace(',', '.'));
+
+            console.log(`Przetworzone dane: nazwa=${name}, ilość=${quantity}, cena=${price}`);
+
+            // Zapisujemy do odpowiedniej kategorii
+            if (fuelId) {
+                console.log(`Dodaję tankowanie: FuelId=${fuelId}, Amount=${quantity}, Price=${price}`);
                 fuelEntries.push({
-                    FuelId: parseInt(item.dataset.fuelId),
+                    FuelId: parseInt(fuelId),
                     Amount: quantity,
                     PriceAtSale: price
                 });
-            } else {
+            }
+            else if (productId) {
+                console.log(`Dodaję produkt: ItemId=${productId}, Quantity=${quantity}`);
                 items.push({
-                    ItemId: parseInt(item.dataset.productId),
-                    Quantity: quantity,
+                    ItemId: parseInt(productId),
+                    Quantity: Math.max(1, Math.round(quantity)),
                     IsFuel: false
                 });
             }
+            else {
+                console.warn("Element nie jest ani produktem, ani tankowaniem!");
+            }
+        });
+
+        console.log("Końcowy wynik parsowania:", {
+            items: items,
+            fuelEntries: fuelEntries
         });
 
         return {
             items: items,
             fuelEntries: fuelEntries
         };
+    }
+
+    // Funkcja pomocnicza do czyszczenia paragonu
+    function clearReceipt() {
+        document.getElementById('receiptItems').innerHTML = '';
+        document.getElementById('totalAmount').textContent = '0,00';
+
+        // Odznaczamy przyciski paliw
+        document.querySelectorAll('.grid-item-button').forEach(button => {
+            button.classList.remove('active-refueling');
+        });
     }
 </script>
 

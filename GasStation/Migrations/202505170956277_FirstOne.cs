@@ -3,7 +3,7 @@
     using System;
     using System.Data.Entity.Migrations;
     
-    public partial class ChangesInFuel : DbMigration
+    public partial class FirstOne : DbMigration
     {
         public override void Up()
         {
@@ -92,7 +92,7 @@
                 c => new
                     {
                         OrderSpecificationId = c.Int(nullable: false, identity: true),
-                        ProductId = c.Int(nullable: false),
+                        ProductId = c.Int(),
                         PriceAtSale = c.Decimal(nullable: false, precision: 18, scale: 2),
                         Quantity = c.Int(nullable: false),
                         RefuelingEntryId = c.Int(),
@@ -100,7 +100,7 @@
                     })
                 .PrimaryKey(t => t.OrderSpecificationId)
                 .ForeignKey("dbo.Order", t => t.OrderId)
-                .ForeignKey("dbo.Product", t => t.ProductId, cascadeDelete: true)
+                .ForeignKey("dbo.Product", t => t.ProductId)
                 .ForeignKey("dbo.RefuelingEntry", t => t.RefuelingEntryId)
                 .Index(t => t.ProductId)
                 .Index(t => t.RefuelingEntryId)

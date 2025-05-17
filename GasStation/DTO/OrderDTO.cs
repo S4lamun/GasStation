@@ -38,6 +38,7 @@ namespace GasStation.DTO
         public string CustomerNip { get; set; }
         public string PaymentType { get; set; }
         public List<OrderItemDTO> Items { get; set; } = new List<OrderItemDTO>();
+        public List<RefuelingEntryInputDTO> RefuelingEntries { get; set; } = new List<RefuelingEntryInputDTO>();
     }
 
     
@@ -55,6 +56,19 @@ namespace GasStation.DTO
         public bool IsFuel { get; set; } // True if it's fuel, False if it's a product
     }
 
-  
+    public class RefuelingEntryInputDTO
+    {
+        [Required(ErrorMessage = "Fuel ID is required.")]
+        public int FuelId { get; set; }
+
+        [Required(ErrorMessage = "Amount is required.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be positive.")]
+        public decimal Amount { get; set; } // Liters
+
+        [Required(ErrorMessage = "Price at sale is required.")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive.")]
+        public decimal PriceAtSale { get; set; } // Price per liter at time of sale
+    }
+
 
 }
