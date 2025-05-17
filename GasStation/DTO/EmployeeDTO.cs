@@ -20,6 +20,8 @@ namespace GasStation.DTO
         // Pola specyficzne dla Employee
         public string Login { get; set; }
 
+        public string FullName => $"{Name} {Surname}";
+
         // Password is typically NOT included in display DTOs for security
     }
 
@@ -42,6 +44,8 @@ namespace GasStation.DTO
         [Required(ErrorMessage = "Login is required.")]
         [StringLength(50, ErrorMessage = "Login cannot exceed 50 characters.")]
         public string Login { get; set; }
+
+        public string FullName => $"{Name} {Surname}";
 
         // Password is required for creation
         [Required(ErrorMessage = "Password is required.")]

@@ -47,6 +47,24 @@ namespace GasStation.Controllers
                 return View("Error"); // Zakładając, że masz widok Error.cshtml
             }
         }
+        [HttpGet]
+        public JsonResult GetAllCustomersJson()
+        {
+            try
+            {
+                var customers = _customerService.GetAllCustomers()
+                    .Select(c => new {
+                        Nip = c.Nip,
+                        CompanyName = c.CompanyName
+                    }).ToList();
+
+                return Json(customers, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new List<object>(), JsonRequestBehavior.AllowGet);
+            }
+        }
 
         // GET: Customer/Details/5 (gdzie 5 to NIP klienta)
         // Akcja wyświetlająca szczegóły pojedynczego klienta

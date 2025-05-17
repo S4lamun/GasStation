@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+
+// Choose ONE MVC framework and stick with it
+// Option 1: Using ASP.NET Core MVC (recommended for new projects)
+
+
 using System.Web.Mvc;
-using GasStation.Services; // Pamiętaj o dodaniu using do Twoich serwisów
-using GasStation.DTO; // Pamiętaj o dodaniu using do Twoich DTOs
-using GasStation.Models; // Pamiętaj o dodaniu using do Twoich Models
-						 // Jeśli masz własne wyjątki biznesowe, dodaj using
-						 // using GasStation.Exceptions;
-using System.Linq; // Potrzebne do LINQ
+
+using GasStation.Services;
+using GasStation.DTO;
+using GasStation.Models;
 
 namespace GasStation.Controllers
 {
@@ -82,96 +87,106 @@ namespace GasStation.Controllers
 			}
 		}
 
-		// GET: Order/Create
-		// Akcja wyświetlająca formularz do tworzenia nowego zamówienia
-		public ActionResult Create()
-		{
-			try
-			{
-				// Pobierz dane potrzebne do list rozwijanych w formularzu (klienci i pracownicy)
-				// Możesz też potrzebować listy paliw i produktów do wyboru w pozycjach zamówienia
-				var customers = _customerService.GetAllCustomers(); // Zakładając, że masz taką metodę
-				var employees = _employeeService.GetAllEmployees(); // Zakładając, że masz taką metodę
-																	// var fuels = _fuelService.GetAllFuels(); // Jeśli masz FuelService
-																	// var products = _productService.GetAllProducts(); // Jeśli masz ProductService
+        // GET: Order/Create
+        // Akcja wyświetlająca formularz do tworzenia nowego zamówienia
+        public ActionResult Create()
+        {
+            try
+            {
+                // Pobierz dane z serwisu
+                var customers = _customerService.GetAllCustomers() ?? new List<CustomerDTO>();
+                var employees = _employeeService.GetAllEmployees() ?? new List<EmployeeDTO>();
 
-				// Przygotuj listy do użycia w DropDownList helperach w widoku
-				// Użyj CustomerNip jako Value i CustomerCompanyName jako Text
-				ViewBag.CustomerList = new SelectList(customers, "Nip", "CompanyName");
-				// Użyj EmployeePesel jako Value i EmployeeFullName jako Text
-				ViewBag.EmployeeList = new SelectList(employees, "Pesel", "FullName"); // Zakładając, że EmployeeDTO ma FullName lub łączysz Name i Surname
-																					   // ViewBag.FuelList = new SelectList(fuels, "FuelId", "FuelName");
-																					   // ViewBag.ProductList = new SelectList(products, "ProductId", "ProductName"); // Zakładając, że ProductDTO ma ProductId i ProductName
+                // Utwórz SelectList z właściwymi właściwościami
+                ViewBag.CustomerList = new SelectList(customers, "Nip", "CompanyName");
+                ViewBag.EmployeeList = employees.Select(e => new SelectListItem
+                {
+                    Value = e.Pesel,
+                    Text = $"{e.Name} {e.Surname}" // Łączymy Name i Surname
+                }).ToList();
 
-				// Zwróć widok z pustym DTO dla formularza.
-				// CreateOrderDTO zawiera listę OrderItemDTO, którą trzeba będzie obsłużyć w widoku (np. dynamicznie dodając pola)
-				return View(new CreateOrderDTO { Items = new List<OrderItemDTO>() });
-			}
-			catch (Exception ex)
-			{
-				ViewBag.ErrorMessage = "Wystąpił błąd podczas ładowania formularza tworzenia zamówienia: " + ex.Message;
-				return View("Error");
-			}
-		}
+                return View(new CreateOrderDTO { Items = new List<OrderItemDTO>() });
+            }
+            catch (Exception ex)
+            {
+                // Logowanie błędu
 
-		// POST: Order/Create
-		// Akcja obsługująca wysłanie formularza tworzenia nowego zamówienia
-		[HttpPost]
-		[ValidateAntiForgeryToken]
-		public ActionResult Create(CreateOrderDTO orderDto) // Przyjmujemy CreateOrderDTO z danymi formularza
-		{
-			// Ponownie pobierz dane do list rozwijanych, na wypadek gdyby walidacja ModelSate.IsValid się nie powiodła
-			try
-			{
-				var customers = _customerService.GetAllCustomers();
-				var employees = _employeeService.GetAllEmployees();
-				ViewBag.CustomerList = new SelectList(customers, "Nip", "CompanyName", orderDto.CustomerNip);
-				ViewBag.EmployeeList = new SelectList(employees, "Pesel", "FullName", orderDto.EmployeePesel);
-				// Pobierz i ustaw wybrane wartości dla list paliw/produktów, jeśli są używane
-			}
-			catch (Exception ex)
-			{
-				ModelState.AddModelError("", "Wystąpił błąd podczas ładowania danych pomocniczych: " + ex.Message);
-				return View(orderDto); // Wróć do widoku z błędami
-			}
+                // Zwróć puste listy w przypadku błędu
+                ViewBag.CustomerList = new SelectList(new List<CustomerDTO>(), "Nip", "CompanyName");
+                ViewBag.EmployeeList = new List<SelectListItem>();
+
+                ViewBag.ErrorMessage = "Wystąpił błąd podczas ładowania danych";
+                return View(new CreateOrderDTO { Items = new List<OrderItemDTO>() });
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetEmployeesAndCustomers()
+        {
+            try
+            {
+                var customers = _customerService.GetAllCustomers()
+                    .Select(c => new { value = c.Nip, text = c.CompanyName })
+                    .ToList();
+
+                var employees = _employeeService.GetAllEmployees()
+                    .Select(e => new { value = e.Pesel, text = $"{e.Name} {e.Surname}" })
+                    .ToList();
+
+                return Json(new { customers, employees });
+            }
+            catch (Exception ex)
+			{ 
+                return Json(new { customers = new List<object>(), employees = new List<object>() });
+            }
+        }
 
 
-			// Walidacja Model State (sprawdza wymagane pola, formaty itp. z DataAnnotations)
-			if (ModelState.IsValid)
-			{
-				try
-				{
-					// Ustaw Pesel pracownika na podstawie zalogowanego użytkownika, jeśli to możliwe
-					// orderDto.EmployeePesel = User.Identity.GetEmployeePesel(); // Przykład - wymaga implementacji uwierzytelniania
+        // POST: Order/Create
+        // Akcja obsługująca wysłanie formularza tworzenia nowego zamówienia
+        [HttpPost]
+        public ActionResult Create(CreateOrderDTO orderDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
 
-					// Wywołaj metodę serwisu, aby stworzyć nowe zamówienie
-					// Metoda serwisu obsługuje logikę biznesową (np. pobranie aktualnych cen, obliczenie sumy)
-					_orderService.CreateOrder(orderDto);
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Wystąpiły błędy walidacji",
+                        errors = errors
+                    });
+                }
 
-					// Po pomyślnym utworzeniu, przekieruj użytkownika do listy zamówień lub szczegółów nowego zamówienia
-					return RedirectToAction("Index");
-				}
-				// Obsługa własnych wyjątków biznesowych z serwisu
-				// catch (BusinessLogicException ex)
-				// {
-				//     ModelState.AddModelError("", ex.Message); // Dodaj błąd do ModelState
-				//     return View(orderDto); // Wróć do widoku formularza z danymi i błędami
-				// }
-				catch (Exception ex)
-				{
-					ModelState.AddModelError("", "Wystąpił błąd podczas tworzenia zamówienia: " + ex.Message);
-					return View(orderDto); // Wróć do widoku formularza z danymi i błędami
-				}
-			}
+                var order = _orderService.CreateOrder(orderDto);
 
-			// Jeśli Model state nie jest poprawny, wróć do widoku formularza z danymi
-			// wprowadzonymi przez użytkownika i informacjami o błędach walidacji
-			return View(orderDto);
-		}
+                return Json(new
+                {
+                    success = true,
+                    message = "Zamówienie zostało pomyślnie złożone",
+                    orderId = order.OrderId
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
 
-		// GET: Order/Delete/5 (gdzie 5 to OrderId)
-		// Akcja wyświetlająca stronę z potwierdzeniem usunięcia zamówienia
-		public ActionResult Delete(int? id)
+        // GET: Order/Delete/5 (gdzie 5 to OrderId)
+        // Akcja wyświetlająca stronę z potwierdzeniem usunięcia zamówienia
+        public ActionResult Delete(int? id)
 		{
 			if (id == null)
 			{

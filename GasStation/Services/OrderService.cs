@@ -32,18 +32,14 @@ namespace GasStation.Services
                 OrderId = order.OrderId,
                 OrderDate = order.OrderDate,
                 PaymentType = order.PaymentType,
-                TotalAmount = order.TotalAmount,
-
                 CustomerNip = order.Customer?.Nip,
-                CustomerCompanyName = $"{order.Customer?.Nip} {order.Customer?.CompanyName}",
-
+                CustomerCompanyName = order.Customer?.CompanyName,
                 EmployeePesel = order.Employee?.Pesel,
                 EmployeeFullName = $"{order.Employee?.Name} {order.Employee?.Surname}",
-
-                // Map order specifications
+                TotalAmount = order.TotalAmount,
                 OrderSpecifications = order.OrderSpecifications?
-                                          .Select(os => MapToOrderSpecificationDto(os))
-                                          .ToList() ?? new List<OrderSpecificationDTO>()
+                    .Select(MapToOrderSpecificationDto)
+                    .ToList()
             };
         }
 
@@ -69,47 +65,40 @@ namespace GasStation.Services
         {
             if (os == null) return null;
 
-            // Calculate the sum for the item based on PriceAtSale
-            decimal itemTotal = 0;
-            string productName = null;
-            decimal? productPriceAtSale = null;
-            RefuelingEntryDTO refuelingDetails = null;
-
-            if (os.ProductId != null && os.Product != null)
-            {
-                // Product item
-                productName = os.Product.Name;
-                // Product price at time of purchase - get from PriceAtSale from OrderSpecification
-                productPriceAtSale = os.PriceAtSale;
-                itemTotal = os.PriceAtSale * os.Quantity; // Item total
-            }
-            else if (os.RefuelingEntryId != null && os.RefuelingEntry != null)
-            {
-                // Fuel item
-                // Map refueling details using helper method
-                refuelingDetails = MapToRefuelingEntryDto(os.RefuelingEntry);
-                // Fuel price at time of purchase - get from PriceAtSale from RefuelingEntry
-                decimal fuelPriceAtSale = os.RefuelingEntry.PriceAtSale;
-                itemTotal = os.RefuelingEntry.Amount * fuelPriceAtSale; // Item total
-            }
-
-            return new OrderSpecificationDTO
+            var dto = new OrderSpecificationDTO
             {
                 OrderSpecificationId = os.OrderSpecificationId,
                 Quantity = os.Quantity,
+                PriceAtSale = os.PriceAtSale,
                 OrderId = os.OrderId,
-
-                // Product details
-                ProductId = os.ProductId,
-                ProductName = productName,
-                ProductPrice = productPriceAtSale, // Map product PriceAtSale here
-
-                // Refueling details
-                RefuelingEntryId = os.RefuelingEntryId,
-                RefuelingEntryDetails = refuelingDetails, // RefuelingEntryDto goes here
-
-                ItemTotal = itemTotal // Calculated item total
+                ItemTotal = os.Quantity * os.PriceAtSale
             };
+
+            // Handle product details
+            if (os.ProductId != default && os.Product != null)
+            {
+                dto.ProductId = os.ProductId;
+                dto.ProductName = os.Product.Name;
+                dto.ProductPrice = os.Product.Price;
+                dto.IsFuel = false;
+            }
+
+            // Handle refueling details
+            if (os.RefuelingEntryId.HasValue && os.RefuelingEntry != null)
+            {
+                dto.RefuelingEntryId = os.RefuelingEntryId;
+                dto.IsFuel = true;
+                dto.RefuelingEntryDetails = new RefuelingEntryDTO
+                {
+                    RefuelingEntryId = os.RefuelingEntry.RefuelingEntryId,
+                    Amount = os.RefuelingEntry.Amount,
+                    PriceAtSale = os.RefuelingEntry.PriceAtSale,
+                    FuelId = os.RefuelingEntry.FuelId,
+                    FuelName = os.RefuelingEntry.Fuel?.FuelName
+                };
+            }
+
+            return dto;
         }
 
         // --- Public Service Methods ---
@@ -237,11 +226,19 @@ namespace GasStation.Services
             // 7. Add main Order entity to context
             // Adding the order will also add its related OrderSpecifications and RefuelingEntries
             // due to the relationships and cascade behavior (default in EF for dependent entities).
+            Console.WriteLine($"Order will be saved with:");
+            Console.WriteLine($"- {order.OrderSpecifications.Count} specifications");
+            Console.WriteLine($"- {order.RefuelingEntries.Count} refueling entries");
+            Console.WriteLine($"- Total amount: {order.TotalAmount}");
             _context.Orders.Add(order);
 
 
             // 8. Save changes (adds Order, OrderSpecifications, RefuelingEntries)
             _context.SaveChanges();
+
+            Console.WriteLine($"Order saved with ID {order.OrderId}");
+            Console.WriteLine($"- Specifications count: {order.OrderSpecifications.Count}");
+            Console.WriteLine($"- Refueling entries count: {order.RefuelingEntries.Count}");
 
             // 9. Return DTO of created order
             // Fetch order again with loaded relationships for mapping to DTO

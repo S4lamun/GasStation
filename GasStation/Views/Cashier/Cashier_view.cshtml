@@ -105,16 +105,14 @@
             </div>
 
             <div class="payment-options">
-                <button class="payment-btn large-btn" id="btnCash">GOTÓWKA</button>
-                <button class="payment-btn large-btn" id="btnCard">KARTA</button>
-                <button class="payment-btn" id="btnInvoice">FAKTURA</button>
+                <button class="payment-btn large-btn" id="btnCash">PŁATNOŚĆ</button>
 
             </div>
         </section>
     </main>
 
     <footer class="bottom-bar">
-        
+
 
         <span class="logout-button">
             @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
@@ -128,7 +126,7 @@
 
 
 @section Scripts {
-    
+
 
 
     <script>
@@ -674,8 +672,22 @@
 
 
                 function initPayments() {
-                    [{ btn: 'cash', msg: 'Płatność gotówką: ' }, { btn: 'card', msg: 'Płatność kartą: ' }, { btn: 'invoice', msg: 'Faktura na kwotę: ' }]
-                        .forEach(({ btn, msg }) => btns[btn] && btns[btn].addEventListener('click', () => alert(`${msg}${fmtPLN(currentTotal)} PLN`)));
+                    if (btns.cash) {
+                        btns.cash.addEventListener('click', () => {
+                            if (currentTotal <= 0) {
+                                alert('Nie można zrealizować płatności - paragon jest pusty');
+                                return;
+                            }
+
+                            // Sprawdź czy modal płatności istnieje
+                            if (document.getElementById('paymentModal')) {
+                                openCreate(fmtPLN(currentTotal));
+                            } else {
+                                console.error('Modal płatności nie został znaleziony');
+                                alert('Błąd systemu - brak formularza płatności');
+                            }
+                        });
+                    }
                 }
 
                 function initSelect2() {
@@ -696,11 +708,50 @@
                     const now = new Date();
                     timeDisplay.innerHTML = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) +
                         ' <span class="date-small">' + now.toLocaleDateString('pl-PL') + '</span>';
+
+
                 }
             });
-    </script>
-    }
 
-    
+        function openCreate(totalAmount) {
+            // Set the total amount in the payment modal
+            document.getElementById('paymentTotalAmount').textContent = totalAmount;
+
+            // Show the modal immediately
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+
+            // The dropdowns will be populated by the DOMContentLoaded event listeners
+            // that are already fetching /Customer/GetAllCustomersJson and /Employee/GetAllEmployeesJson
+        }
+
+        function populateDropdown(id, data) {
+            const select = document.getElementById(id);
+            if (!select) return;
+
+            // Zachowaj pierwszą opcję (placeholder)
+            const placeholder = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(placeholder);
+
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.value;
+                option.textContent = item.text;
+                select.appendChild(option);
+            });
+        }
+
+        function showPaymentModal(totalAmount) {
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            document.getElementById('paymentTotalAmount').textContent = totalAmount;
+            modal.show();
+        }
+    </script>
+}
+
+
 @Html.Partial("AddCustomerModal")
 @Html.Partial("ChangeFuelPriceModal")
+@Html.Partial("../Order/Create")
+}

@@ -4,6 +4,7 @@ using System.Web.Mvc;
 using GasStation.Services;
 using GasStation.DTO;
 using GasStation.Models;
+using System.Linq;
 // Jeśli masz własne wyjątki biznesowe, dodaj using
 // using GasStation.Exceptions; // example
 
@@ -134,6 +135,34 @@ namespace GasStation.Controllers
         {
             // ... existing Delete action ...
             return View(); // Placeholder
+        }
+
+        [HttpGet]
+        public JsonResult GetAllEmployeesJson()
+        {
+            try
+            {
+                // Pobierz listę klientów z serwisu
+                List<EmployeeDTO> employees = _employeeService.GetAllEmployees();
+
+                // Przygotuj dane do zwrócenia w formacie JSON
+                var result = employees.Select(c => new
+                {
+                    Pesel = c.Pesel,
+                    Name = c.Name,
+                    Surname = c.Surname
+                    // Możesz dodać więcej właściwości jeśli potrzebujesz
+                }).ToList();
+
+                // Zwróć dane jako JSON
+                return Json(result, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // W przypadku błędu zwróć komunikat o błędzie
+                return Json(new { success = false, message = "Wystąpił błąd podczas pobierania listy klientów: " + ex.Message },
+                           JsonRequestBehavior.AllowGet);
+            }
         }
 
         // POST: Employee/Delete/12345678901

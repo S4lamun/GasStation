@@ -123,5 +123,6 @@ namespace GasStation.Services
                 FuelName = fuel.FuelName,
             };
         }
+
     }
 }

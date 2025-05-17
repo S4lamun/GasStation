@@ -34,24 +34,13 @@ namespace GasStation.DTO
     // DTO for creating a new Order (input)
     public class CreateOrderDTO
     {
-        // OrderId is NOT included (auto-generated)
-        // OrderDate is typically set in the Service (DateTime.Now)
-
-        [Required(ErrorMessage = "Payment type is required.")]
-        [StringLength(50, ErrorMessage = "Payment type cannot exceed 50 characters.")]
+        public string EmployeePesel { get; set; }
+        public string CustomerNip { get; set; }
         public string PaymentType { get; set; }
-
-        
-        public string CustomerNip { get; set; } // PESEL of the customer selected from a list
-
-        [Required(ErrorMessage = "Employee selection is required.")]
-        public string EmployeePesel { get; set; } // PESEL of the employee selected from a list (or logged in)
-
-        // Collection of items added to the order
-        [Required(ErrorMessage = "Order must contain at least one item.")]
-        public List<OrderItemDTO> Items { get; set; } // Using the previously defined OrderItemDto
+        public List<OrderItemDTO> Items { get; set; } = new List<OrderItemDTO>();
     }
 
+    
     // DTO for a single item when creating an Order (used within CreateOrderDto)
     public class OrderItemDTO
     {
@@ -65,4 +54,7 @@ namespace GasStation.DTO
         [Required(ErrorMessage = "Item type is required.")]
         public bool IsFuel { get; set; } // True if it's fuel, False if it's a product
     }
+
+  
+
 }

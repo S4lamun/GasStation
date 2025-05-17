@@ -1,0 +1,193 @@
+﻿@model GasStation.DTO.CreateOrderDTO
+
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Płatność</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="mb-3">
+                        <label for="customerSelect" class="form-label">Klient:</label>
+                        <select class="form-select" id="customerSelect" name="CustomerNip">
+                            <option value="">-- Wybierz klienta --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="employeeSelect" class="form-label">Pracownik:</label>
+                        <select class="form-select" id="employeeSelect" name="EmployeePesel" required>
+                            <option value="">-- Wybierz pracownika --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentType" class="form-label">Sposób płatności:</label>
+                        <select class="form-select" id="paymentType" required>
+                            <option value="">-- Wybierz --</option>
+                            <option value="Cash">Gotówka</option>
+                            <option value="Card">Karta</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Suma do zapłaty:</label>
+                        <div class="payment-total-amount">
+                            <span id="paymentTotalAmount">0.00</span> zł
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" id="confirmPayment">Potwierdź</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Pobierz klientów przez AJAX
+        fetch('/Customer/GetAllCustomersJson')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success === false) {
+                    console.error('Error:', data.message);
+                    return;
+                }
+
+                const select = document.getElementById('customerSelect');
+                data.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.Nip;
+                    option.textContent = `${customer.CompanyName} (${customer.Nip})`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Pobierz pracowników przez AJAX
+        fetch('/Employee/GetAllEmployeesJson')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success === false) {
+                    console.error('Error:', data.message);
+                    return;
+                }
+
+                const select = document.getElementById('employeeSelect');
+                data.forEach(employee => {
+                    const option = document.createElement('option');
+                    option.value = employee.Pesel;
+                    option.textContent = `${employee.Name} ${employee.Surname} (${employee.Pesel})`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+    });
+
+    document.getElementById('confirmPayment').addEventListener('click', async function () {
+        const paymentType = document.getElementById('paymentType').value;
+        const employeePesel = document.getElementById('employeeSelect').value;
+
+        if (!paymentType || !employeePesel) {
+            alert('Proszę wybrać sposób płatności i pracownika');
+            return;
+        }
+
+        const orderItems = getOrderItems();
+
+        const orderData = {
+            EmployeePesel: employeePesel,
+            CustomerNip: document.getElementById('customerSelect').value || null,
+            PaymentType: paymentType,
+            Items: orderItems.items,
+            RefuelingEntries: orderItems.fuelEntries // Teraz to będzie poprawnie mapowane
+        };
+
+        try {
+            const response = await fetch('/Order/Create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Błąd serwera');
+            }
+
+            if (result.success) {
+                alert('Zamówienie zostało złożone!');
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                // Clear the receipt or refresh the page
+            } else {
+                throw new Error(result.message || 'Nie udało się złożyć zamówienia');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(`Wystąpił błąd: ${error.message}`);
+        }
+    });
+
+
+    function getOrderItems() {
+        const items = [];
+        const fuelEntries = [];
+
+        document.querySelectorAll('#receiptItems .receipt-item').forEach(item => {
+            const isFuel = item.dataset.fuelId !== undefined;
+            const quantityText = item.children[2].textContent;
+            const quantity = parseFloat(quantityText.replace(/[^\d.]/g, ''));
+            const price = parseFloat(item.children[3].textContent.replace(/[^\d.]/g, ''));
+
+            if (isFuel) {
+                fuelEntries.push({
+                    FuelId: parseInt(item.dataset.fuelId),
+                    Amount: quantity,
+                    PriceAtSale: price
+                });
+            } else {
+                items.push({
+                    ItemId: parseInt(item.dataset.productId),
+                    Quantity: quantity,
+                    IsFuel: false
+                });
+            }
+        });
+
+        return {
+            items: items,
+            fuelEntries: fuelEntries
+        };
+    }
+</script>
+
+<style>
+    .payment-total-amount {
+        font-size: 1.5rem;
+        font-weight: bold;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    #paymentModal .modal-dialog {
+        max-width: 600px;
+    }
+
+    #paymentModal .modal-body {
+        padding: 20px;
+    }
+</style>
