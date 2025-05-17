@@ -20,10 +20,8 @@ namespace GasStation.Services
             _fuelService = fuelService;
         }
 
-        // --- Private Helper Methods for Mapping ---
-
-        // Maps Order entity (with included related data) to OrderDto
-        private OrderDTO MapToOrderDto(Order order)
+        
+                private OrderDTO MapToOrderDto(Order order)
         {
             if (order == null) return null;
 
@@ -43,8 +41,7 @@ namespace GasStation.Services
             };
         }
 
-        // Maps RefuelingEntry entity (with included related data) to RefuelingEntryDto
-        private RefuelingEntryDTO MapToRefuelingEntryDto(RefuelingEntry re)
+                private RefuelingEntryDTO MapToRefuelingEntryDto(RefuelingEntry re)
         {
             if (re == null) return null;
 
@@ -56,12 +53,10 @@ namespace GasStation.Services
 
                 FuelId = re.FuelId,
                 FuelName = re.Fuel?.FuelName,
-                PriceAtSale = re.PriceAtSale // Map PriceAtSale from entity
-            };
+                PriceAtSale = re.PriceAtSale             };
         }
 
-        // Maps OrderSpecification entity (with included related data) to OrderSpecificationDto
-        private OrderSpecificationDTO MapToOrderSpecificationDto(OrderSpecification os)
+                private OrderSpecificationDTO MapToOrderSpecificationDto(OrderSpecification os)
         {
             if (os == null) return null;
 
@@ -74,8 +69,7 @@ namespace GasStation.Services
                 ItemTotal = os.Quantity * os.PriceAtSale
             };
 
-            // Handle product details
-            if (os.ProductId != default && os.Product != null)
+                        if (os.ProductId != default && os.Product != null)
             {
                 dto.ProductId = os.ProductId;
                 dto.ProductName = os.Product.Name;
@@ -83,8 +77,7 @@ namespace GasStation.Services
                 dto.IsFuel = false;
             }
 
-            // Handle refueling details
-            if (os.RefuelingEntryId.HasValue && os.RefuelingEntry != null)
+                        if (os.RefuelingEntryId.HasValue && os.RefuelingEntry != null)
             {
                 dto.RefuelingEntryId = os.RefuelingEntryId;
                 dto.IsFuel = true;
@@ -101,228 +94,142 @@ namespace GasStation.Services
             return dto;
         }
 
-        // --- Public Service Methods ---
-
-        // Creates a new order based on input DTO
-        // Creates a new order based on input DTO
-        public OrderDTO CreateOrder(CreateOrderDTO orderDto)
+        
+                        public OrderDTO CreateOrder(CreateOrderDTO orderDto)
         {
-            // 1. Validate input DTO
-            if (orderDto == null) throw new ArgumentNullException(nameof(orderDto));
-            // Allow orders with only refueling entries, so check total count of items and fuel entries
-            if ((orderDto.Items == null || !orderDto.Items.Any()) && (orderDto.RefuelingEntries == null || !orderDto.RefuelingEntries.Any()))
+                        if (orderDto == null) throw new ArgumentNullException(nameof(orderDto));
+                        if ((orderDto.Items == null || !orderDto.Items.Any()) && (orderDto.RefuelingEntries == null || !orderDto.RefuelingEntries.Any()))
             {
                 throw new BusinessLogicException("Order must contain items or refueling entries.");
             }
 
 
-            // 2. Find and validate Employee
-            var employee = _context.Employees.Find(orderDto.EmployeePesel);
+                        var employee = _context.Employees.Find(orderDto.EmployeePesel);
             if (employee == null) throw new BusinessLogicException($"Employee with PESEL {orderDto.EmployeePesel} not found.");
 
-            // 3. Find and validate Customer (now optional)
-            Customer customer = null;
-            if (!string.IsNullOrEmpty(orderDto.CustomerNip)) // Check if CustomerNip was provided
-            {
+                        Customer customer = null;
+            if (!string.IsNullOrEmpty(orderDto.CustomerNip))             {
                 customer = _context.Customers.Find(orderDto.CustomerNip);
-                if (customer == null) // If NIP was provided but customer not found
-                {
+                if (customer == null)                 {
                     throw new BusinessLogicException($"Customer with NIP {orderDto.CustomerNip} not found.");
                 }
             }
-            // If orderDto.CustomerNip is null or empty, 'customer' remains null, which is allowed.
+            
 
-
-            // 4. Create main Order entity
-            var order = new Order
+                        var order = new Order
             {
                 OrderDate = DateTime.Now,
                 PaymentType = orderDto.PaymentType,
-                CustomerPesel = customer?.Nip, // Set CustomerPesel to found customer's NIP or null
-                EmployeePesel = orderDto.EmployeePesel,
+                CustomerPesel = customer?.Nip,                 EmployeePesel = orderDto.EmployeePesel,
                 OrderSpecifications = new List<OrderSpecification>(),
-                RefuelingEntries = new List<RefuelingEntry>(), // Initialize refueling entries collection
-                TotalAmount = 0 // Will be calculated
-            };
+                RefuelingEntries = new List<RefuelingEntry>(),                 TotalAmount = 0             };
 
             decimal calculatedTotalAmount = 0;
 
-            // 5. Process each item from DTO (assuming Items contains products, and RefuelingEntries contains fuel)
-
-            // Process Product Items (from orderDto.Items where IsFuel is false or not specified)
-            if (orderDto.Items != null)
+            
+                        if (orderDto.Items != null)
             {
                 foreach (var itemDto in orderDto.Items)
                 {
-                    // Assuming orderDto.Items contains ONLY products now based on the structure sent from frontend
-                    // If orderDto.Items could contain both products and fuel, the original check 'if (itemDto.IsFuel)' was needed here.
-                    // Given the frontend separates them into Items and RefuelingEntries, let's assume Items are products.
-
+                                                            
                     if (itemDto.Quantity <= 0) throw new BusinessLogicException($"Product quantity for item ID {itemDto.ItemId} must be positive.");
 
-                    // --- Process product item ---
-                    var product = _context.Products.Find(itemDto.ItemId);
+                                        var product = _context.Products.Find(itemDto.ItemId);
                     if (product == null) throw new BusinessLogicException($"Product with ID {itemDto.ItemId} not found.");
 
-                    // Get product price at order time (assuming Product.Price is current selling price)
-                    decimal productPriceAtSale = product.Price; // Fetched from Product entity
-
-                    // Create OrderSpecification for this product item
-                    var productSpec = new OrderSpecification
+                                        decimal productPriceAtSale = product.Price; 
+                                        var productSpec = new OrderSpecification
                     {
-                        Quantity = (int)itemDto.Quantity, // Product quantity (pieces)
-                        PriceAtSale = productPriceAtSale, // SAVE price in product specification (price per unit)
-                        ProductId = product.ProductId,
-                        RefuelingEntryId = null, // Not a fuel item
-                        RefuelingEntry = null,
-                        // OrderId will be set automatically by EF relationship or SaveChanges
-                    };
-                    order.OrderSpecifications.Add(productSpec); // Add to the order's collection
-
-                    // Calculate sum for this item (quantity * price per item)
-                    calculatedTotalAmount += productSpec.Quantity * productSpec.PriceAtSale;
+                        Quantity = (int)itemDto.Quantity,                         PriceAtSale = productPriceAtSale,                         ProductId = product.ProductId,
+                        RefuelingEntryId = null,                         RefuelingEntry = null,
+                                            };
+                    order.OrderSpecifications.Add(productSpec); 
+                                        calculatedTotalAmount += productSpec.Quantity * productSpec.PriceAtSale;
                 }
             }
 
 
-            // Process Refueling Entries (from orderDto.RefuelingEntries)
-            if (orderDto.RefuelingEntries != null)
+                        if (orderDto.RefuelingEntries != null)
             {
                 foreach (var refuelingEntryDto in orderDto.RefuelingEntries)
                 {
                     if (refuelingEntryDto.Amount <= 0) throw new BusinessLogicException($"Fuel amount for fuel ID {refuelingEntryDto.FuelId} must be positive.");
 
-                    // --- Process fuel item ---
-                    var fuel = _context.Fuels.Find(refuelingEntryDto.FuelId);
+                                        var fuel = _context.Fuels.Find(refuelingEntryDto.FuelId);
                     if (fuel == null) throw new BusinessLogicException($"Fuel with ID {refuelingEntryDto.FuelId} not found.");
 
-                    // Use the price sent from the frontend for the refueling entry
-                    // You might want to validate this price against the current price if security is a concern
-                    // or always use the price from the backend FuelService.
-                    // Based on your frontend sending PriceAtSale, we will use that.
-                    decimal fuelPriceAtSale = refuelingEntryDto.PriceAtSale;
+                                                                                                    decimal fuelPriceAtSale = refuelingEntryDto.PriceAtSale;
 
-                    // Create RefuelingEntry entity
-                    var refuelingEntry = new RefuelingEntry
+                                        var refuelingEntry = new RefuelingEntry
                     {
-                        Amount = refuelingEntryDto.Amount, // This is the amount of fuel (liters)
-                        FuelId = fuel.FuelId,
-                        PriceAtSale = fuelPriceAtSale, // SAVE price in refueling entity
-                        // OrderId will be set automatically by EF relationship or SaveChanges
-                    };
-                    order.RefuelingEntries.Add(refuelingEntry); // Add to the order's collection
-
-                    // Create OrderSpecification for this fuel item
-                    // An OrderSpecification for fuel links to the RefuelingEntry
-                    var fuelSpec = new OrderSpecification
+                        Amount = refuelingEntryDto.Amount,                         FuelId = fuel.FuelId,
+                        PriceAtSale = fuelPriceAtSale,                                             };
+                    order.RefuelingEntries.Add(refuelingEntry); 
+                                                            var fuelSpec = new OrderSpecification
                     {
-                        Quantity = 1, // Quantity of items = 1 (one refueling transaction for this spec line)
-                        PriceAtSale = fuelPriceAtSale * refuelingEntryDto.Amount, // PriceAtSale in OrderSpecification is total for this line (liters * price per liter)
-                        RefuelingEntry = refuelingEntry, // Link between specification and refueling (Use navigation property)
-                        // RefuelingEntryId will be set automatically by EF based on the navigation property relationship
-                        ProductId = null // Not a product item
-                    };
+                        Quantity = 1,                         PriceAtSale = fuelPriceAtSale * refuelingEntryDto.Amount,                         RefuelingEntry = refuelingEntry,                                                 ProductId = null                     };
 
-                    order.OrderSpecifications.Add(fuelSpec); // Add to the order's collection
-
-                    // Calculate sum for this item (liters * price per liter)
-                    calculatedTotalAmount += refuelingEntry.Amount * refuelingEntry.PriceAtSale;
+                    order.OrderSpecifications.Add(fuelSpec); 
+                                        calculatedTotalAmount += refuelingEntry.Amount * refuelingEntry.PriceAtSale;
                 }
             }
 
 
-            // 6. Set total order amount
-            order.TotalAmount = calculatedTotalAmount;
+                        order.TotalAmount = calculatedTotalAmount;
 
-            // 7. Add main Order entity to context
-            // Adding the order will also add its related OrderSpecifications and RefuelingEntries
-            // due to the relationships and cascade behavior (default in EF for dependent entities).
-            Console.WriteLine($"Order will be saved with:");
+                                                Console.WriteLine($"Order will be saved with:");
             Console.WriteLine($"- {order.OrderSpecifications.Count} specifications");
             Console.WriteLine($"- {order.RefuelingEntries.Count} refueling entries");
             Console.WriteLine($"- Total amount: {order.TotalAmount}");
             _context.Orders.Add(order);
 
 
-            // 8. Save changes (adds Order, OrderSpecifications, RefuelingEntries)
-            _context.SaveChanges();
+                        _context.SaveChanges();
 
             Console.WriteLine($"Order saved with ID {order.OrderId}");
             Console.WriteLine($"- Specifications count: {order.OrderSpecifications.Count}");
             Console.WriteLine($"- Refueling entries count: {order.RefuelingEntries.Count}");
 
-            // 9. Return DTO of created order
-            // Fetch order again with loaded relationships for mapping to DTO
-            // Use the ID generated by SaveChanges
-            // Ensure all necessary relationships are included for the MapToOrderDto method
-            var createdOrder = _context.Orders
+                                                            var createdOrder = _context.Orders
                                      .Include(o => o.Customer)
                                      .Include(o => o.Employee)
-                                     // Include specification items and their related entities (Product, RefuelingEntry, Fuel)
-                                     .Include(o => o.OrderSpecifications.Select(os => os.Product)) // For product items
-                                                                                                   // Include RefuelingEntry directly and then Fuel through it
-                                     .Include(o => o.RefuelingEntries.Select(re => re.Fuel)) // Include Fuel for RefuelingEntries
-                                                                                             // Need to explicitly include OrderSpecifications with RefuelingEntry for the spec mapping
-                                      .Include(o => o.OrderSpecifications.Select(os => os.RefuelingEntry))
-                                     .SingleOrDefault(o => o.OrderId == order.OrderId); // Fetch by generated ID
-
-            // Now map complete entity to DTO
-            return MapToOrderDto(createdOrder);
+                                                                          .Include(o => o.OrderSpecifications.Select(os => os.Product))                                                                                                                                         .Include(o => o.RefuelingEntries.Select(re => re.Fuel))                                                                                                                                    .Include(o => o.OrderSpecifications.Select(os => os.RefuelingEntry))
+                                     .SingleOrDefault(o => o.OrderId == order.OrderId); 
+                        return MapToOrderDto(createdOrder);
         }
 
-        // Get list of all orders
-        public List<OrderDTO> GetAllOrders()
+                public List<OrderDTO> GetAllOrders()
         {
-            // Fetch orders with needed relationships for display in list
-            var orders = _context.Orders
+                        var orders = _context.Orders
                                  .Include(o => o.Customer)
                                  .Include(o => o.Employee)
-                                 // You can load Items only if needed in list view (e.g., summary)
-                                 // If not, skip Include for performance
-                                 // .Include(o => o.OrderSpecifications.Select(os => os.Product))
-                                 // .Include(o => o.OrderSpecifications.Select(os => os.RefuelingEntry.Fuel))
-                                 .ToList();
+                                                                                                                                                                     .ToList();
 
             return orders.Select(o => MapToOrderDto(o)).ToList();
         }
 
-        // Get order details by ID
-        public OrderDTO GetOrderById(int orderId)
+                public OrderDTO GetOrderById(int orderId)
         {
-            // Fetch order with ALL needed relationships for detail view
-            var order = _context.Orders
+                        var order = _context.Orders
                                 .Include(o => o.Customer)
                                 .Include(o => o.Employee)
-                                // Include specification items and their related entities
-                                .Include(o => o.OrderSpecifications.Select(os => os.Product)) // For product items
-                                .Include(o => o.OrderSpecifications.Select(os => os.RefuelingEntry.Fuel)) // For fuel items (via RefuelingEntry)
-                                .SingleOrDefault(o => o.OrderId == orderId);
+                                                                .Include(o => o.OrderSpecifications.Select(os => os.Product))                                 .Include(o => o.OrderSpecifications.Select(os => os.RefuelingEntry.Fuel))                                 .SingleOrDefault(o => o.OrderId == orderId);
 
-            return MapToOrderDto(order); // Map to DTO
-        }
+            return MapToOrderDto(order);         }
 
-        // Delete order by ID
-        public void DeleteOrder(int orderId)
+                public void DeleteOrder(int orderId)
         {
-            // Find order with related items (for manual deletion if EF doesn't do cascade)
-            var order = _context.Orders
+                        var order = _context.Orders
                                 .Include(o => o.OrderSpecifications)
-                                .Include(o => o.RefuelingEntries) // Include refuelings
-                                .SingleOrDefault(o => o.OrderId == orderId);
+                                .Include(o => o.RefuelingEntries)                                 .SingleOrDefault(o => o.OrderId == orderId);
 
             if (order == null)
             {
-                // Not found, do nothing
-                return;
+                                return;
             }
 
-            // Business validation: Check if order can be deleted (e.g., not paid)
-            // In this example, we assume it can be deleted
-
-            // Manual deletion of child items if cascade deletion in database is not configured OR you want to be sure
-            // By default in EF6, one-to-many relationships from Order to OrderSpecification/RefuelingEntry usually have cascade deletion ENABLED at DB level.
-            // This code is for cases where it's not or you prefer to be explicit.
-            if (order.OrderSpecifications != null)
+                        
+                                                if (order.OrderSpecifications != null)
             {
                 _context.OrderSpecifications.RemoveRange(order.OrderSpecifications);
             }
@@ -331,11 +238,9 @@ namespace GasStation.Services
                 _context.RefuelingEntries.RemoveRange(order.RefuelingEntries);
             }
 
-            // Delete main Order entity
-            _context.Orders.Remove(order);
+                        _context.Orders.Remove(order);
 
-            // Save changes
-            _context.SaveChanges();
+                        _context.SaveChanges();
         }
     }
 }

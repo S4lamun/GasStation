@@ -16,8 +16,7 @@ namespace GasStation.Services
             _context = context;
         }
 
-        // Pobierz wszystkie paliwa (wersja podstawowa)
-        public List<FuelDTO> GetAllFuels()
+                public List<FuelDTO> GetAllFuels()
         {
             return _context.Fuels
                 .Select(f => new FuelDTO
@@ -28,8 +27,7 @@ namespace GasStation.Services
                 .ToList();
         }
 
-        // Pobierz aktualne ceny wszystkich paliw
-        public Dictionary<int, decimal> GetCurrentPrices()
+                public Dictionary<int, decimal> GetCurrentPrices()
         {
             var currentPrices = new Dictionary<int, decimal>();
             var allFuels = _context.Fuels.ToList();
@@ -46,8 +44,7 @@ namespace GasStation.Services
             return currentPrices;
         }
 
-        // Pobierz aktualną cenę dla konkretnego paliwa
-        public FuelPriceHistory GetCurrentFuelPrice(int fuelId, DateTime atTime)
+                public FuelPriceHistory GetCurrentFuelPrice(int fuelId, DateTime atTime)
         {
             return _context.FuelPriceHistories
                 .Where(h => h.FuelId == fuelId)
@@ -57,8 +54,7 @@ namespace GasStation.Services
                 .FirstOrDefault();
         }
 
-        // Pobierz wszystkie aktualne ceny jako DTO
-        public List<FuelPriceHistoryDTO> GetAllCurrentPrices()
+                public List<FuelPriceHistoryDTO> GetAllCurrentPrices()
         {
             return _context.Fuels
                 .Select(fuel => new
@@ -84,8 +80,7 @@ namespace GasStation.Services
                 .ToList();
         }
 
-        // Pozostałe metody bez zmian
-        public FuelDTO AddFuel(FuelDTO fuelDTO)
+                public FuelDTO AddFuel(FuelDTO fuelDTO)
         {
             var fuel = new Fuel
             {

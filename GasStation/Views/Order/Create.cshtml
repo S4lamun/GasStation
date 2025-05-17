@@ -50,7 +50,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Pobierz klientów przez AJAX
+       
         fetch('/Customer/GetAllCustomersJson')
             .then(response => response.json())
             .then(data => {
@@ -73,7 +73,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Pobierz pracowników przez AJAX
+ 
         fetch('/Employee/GetAllEmployeesJson')
             .then(response => response.json())
             .then(data => {
@@ -104,10 +104,9 @@
             return;
         }
 
-        // Pobieramy dane zamówienia z poprawnym mapowaniem
+ 
         const orderItems = getOrderItemsFixed();
 
-        // Pokazujemy szczegółowe dane w konsoli
         console.log("Szczegóły zamówienia:", orderItems);
 
         const orderData = {
@@ -152,8 +151,7 @@
         }
     });
 
-    // Poprawiona i bardziej szczegółowa funkcja do pobierania danych z paragonu
-    function getOrderItemsFixed() {
+        function getOrderItemsFixed() {
         const items = [];
         const fuelEntries = [];
 
@@ -163,39 +161,32 @@
         receiptItems.forEach((item, index) => {
             console.log(`Analizuję element paragonu ${index + 1}:`, item);
 
-            // Sprawdzamy dokładnie atrybuty data-
-            console.log("Atrybuty data:", {
+                        console.log("Atrybuty data:", {
                 "data-fuel-id": item.getAttribute('data-fuel-id'),
                 "dataset.fuelId": item.dataset.fuelId,
                 "data-product-id": item.getAttribute('data-product-id'),
                 "dataset.productId": item.dataset.productId
             });
 
-            // Sprawdzamy zawartość HTML elementu
-            console.log("Zawartość HTML:", item.innerHTML);
+                        console.log("Zawartość HTML:", item.innerHTML);
 
-            // Pozyskujemy dane z kolumn
-            const columns = item.querySelectorAll('span');
+                        const columns = item.querySelectorAll('span');
             const columnData = Array.from(columns).map(col => col.textContent.trim());
             console.log("Dane kolumn:", columnData);
 
-            // Określamy typ elementu - paliwo czy produkt
-            const fuelId = item.dataset.fuelId;
+                        const fuelId = item.dataset.fuelId;
             const productId = item.dataset.productId;
 
-            // Teraz poprawnie odczytujemy dane z kolumn
-            const name = columnData[1] || '';
+                        const name = columnData[1] || '';
             const quantityText = columnData[2] || '0';
             const priceText = columnData[3] || '0';
 
-            // Konwertujemy liczby
-            const quantity = parseFloat(quantityText.replace(/[^\d,.]/g, '').replace(',', '.'));
+                        const quantity = parseFloat(quantityText.replace(/[^\d,.]/g, '').replace(',', '.'));
             const price = parseFloat(priceText.replace(/[^\d,.]/g, '').replace(',', '.'));
 
             console.log(`Przetworzone dane: nazwa=${name}, ilość=${quantity}, cena=${price}`);
 
-            // Zapisujemy do odpowiedniej kategorii
-            if (fuelId) {
+                        if (fuelId) {
                 console.log(`Dodaję tankowanie: FuelId=${fuelId}, Amount=${quantity}, Price=${price}`);
                 fuelEntries.push({
                     FuelId: parseInt(fuelId),
@@ -227,13 +218,11 @@
         };
     }
 
-    // Funkcja pomocnicza do czyszczenia paragonu
-    function clearReceipt() {
+        function clearReceipt() {
         document.getElementById('receiptItems').innerHTML = '';
         document.getElementById('totalAmount').textContent = '0,00';
 
-        // Odznaczamy przyciski paliw
-        document.querySelectorAll('.grid-item-button').forEach(button => {
+                document.querySelectorAll('.grid-item-button').forEach(button => {
             button.classList.remove('active-refueling');
         });
     }

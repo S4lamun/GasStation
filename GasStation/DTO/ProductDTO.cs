@@ -6,11 +6,9 @@ using System.Web;
 
 namespace GasStation.DTO
 {
-    // DTO for displaying, creating, or updating Product
-    public class ProductDTO 
+        public class ProductDTO 
     {
-        // ID is included for display/update, not needed for creation input normally
-        public int ProductId { get; set; }
+                public int ProductId { get; set; }
 
         [Required(ErrorMessage = "Product name is required.")]
         [StringLength(50, ErrorMessage = "Product name cannot exceed 50 characters.")]

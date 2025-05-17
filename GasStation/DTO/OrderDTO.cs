@@ -17,22 +17,15 @@ namespace GasStation.DTO
         public string PaymentType { get; set; }
 
 
-        // Related entity data for display
-        public string CustomerNip { get; set; }
-        public string CustomerCompanyName { get; set; } // Full name of the customer
-
+                public string CustomerNip { get; set; }
+        public string CustomerCompanyName { get; set; } 
         public string EmployeePesel { get; set; }
-        public string EmployeeFullName { get; set; } // Full name of the employee
+        public string EmployeeFullName { get; set; } 
+                public List<OrderSpecificationDTO> OrderSpecifications { get; set; }
 
-        // Include line items for display
-        public List<OrderSpecificationDTO> OrderSpecifications { get; set; }
+                public decimal TotalAmount { get; set; }     }
 
-        // Calculated field for display
-        public decimal TotalAmount { get; set; } // Sum of all item totals
-    }
-
-    // DTO for creating a new Order (input)
-    public class CreateOrderDTO
+        public class CreateOrderDTO
     {
         public string EmployeePesel { get; set; }
         public string CustomerNip { get; set; }
@@ -42,19 +35,15 @@ namespace GasStation.DTO
     }
 
     
-    // DTO for a single item when creating an Order (used within CreateOrderDto)
-    public class OrderItemDTO
+        public class OrderItemDTO
     {
         [Required(ErrorMessage = "Item ID is required.")]
-        public int ItemId { get; set; } // ID of Fuel OR Product
-
+        public int ItemId { get; set; } 
         [Required(ErrorMessage = "Quantity is required.")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Quantity must be positive.")]
-        public decimal Quantity { get; set; } // Amount for fuel (liters) OR count for product (pieces)
-
+        public decimal Quantity { get; set; } 
         [Required(ErrorMessage = "Item type is required.")]
-        public bool IsFuel { get; set; } // True if it's fuel, False if it's a product
-    }
+        public bool IsFuel { get; set; }     }
 
     public class RefuelingEntryInputDTO
     {
@@ -63,12 +52,10 @@ namespace GasStation.DTO
 
         [Required(ErrorMessage = "Amount is required.")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be positive.")]
-        public decimal Amount { get; set; } // Liters
-
+        public decimal Amount { get; set; } 
         [Required(ErrorMessage = "Price at sale is required.")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive.")]
-        public decimal PriceAtSale { get; set; } // Price per liter at time of sale
-    }
+        public decimal PriceAtSale { get; set; }     }
 
 
 }

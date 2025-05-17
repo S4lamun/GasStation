@@ -6,11 +6,9 @@ using System.Web;
 
 namespace GasStation.DTO
 {
-    // DTO for displaying, creating, or updating Fuel
-    public class FuelDTO
+        public class FuelDTO
     {
-        public int FuelId { get; set; } // ID będzie generowane
-        public string FuelName { get; set; }
+        public int FuelId { get; set; }         public string FuelName { get; set; }
        
     }
 

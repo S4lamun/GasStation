@@ -15,10 +15,8 @@ namespace GasStation.Models
 
         [Required]
         [StringLength(50)]
-        public string FuelName { get; set; } //petrol, diesel, LPG
-
-        //Navigation properties
-        public virtual ICollection<FuelPriceHistory> FuelPriceHistories { get; set; }
+        public string FuelName { get; set; } 
+                public virtual ICollection<FuelPriceHistory> FuelPriceHistories { get; set; }
         public virtual ICollection<RefuelingEntry> RefuelingEntries { get; set; }
 
     }

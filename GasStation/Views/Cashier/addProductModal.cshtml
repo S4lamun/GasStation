@@ -7,13 +7,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
             </div>
             <div class="modal-body">
-                @* Używamy unikalnego ID dla formularza w modalu *@
+               
                 <form id="ajaxAddProductForm">
-                    @* Renderujemy widok częściowy z formularzem.
-                        Przekazujemy nową, pustą instancję ProductDTO. *@
+
                     @Html.Partial("~/Views/Product/_CreateProductForm.cshtml", new GasStation.DTO.ProductDTO())
                 </form>
-                <div id="addProductModalAlertPlaceholder" class="mt-3"></div> @* Miejsce na komunikaty *@
+                <div id="addProductModalAlertPlaceholder" class="mt-3"></div> 
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>

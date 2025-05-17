@@ -1,11 +1,10 @@
 ﻿@model GasStation.DTO.EmployeeLoginDTO
-@* <--- Ustawiamy odpowiedni model dla logowania * *@
-@using GasStation.DTO @* Upewnij się, że masz to, jeśli używasz DTO * *@
+
+@using GasStation.DTO 
 
 @{
-    ViewBag.Title = "Logowanie - Stacja Benzynowa"; // Zmieniony tytuł
-                                                    // Layout = "~/Views/Shared/_Layout.cshtml"; // Odkomentuj, jeśli chcesz użyć głównego layoutu
-    Layout = null; // Dla prostoty na razie bez głównego layoutu
+    ViewBag.Title = "Logowanie - Stacja Benzynowa"; 
+    Layout = null; 
 }
 
 @{
@@ -20,62 +19,71 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title</title>
-    @* Podstawowe style Bootstrapa *@
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    @* Link do Twojego pliku CSS dla logowania *@
-    @* Upewnij się, że ścieżka jest poprawna względem folderu Content *@
+
     <link href="~/Content/css/login-style.css" rel="stylesheet" />
 </head>
 <body>
     <div class="login-container">
-        <h2>Logowanie do Stacji Benzynowej</h2> @* Zmieniony nagłówek * *@
+        <div class="login-container">
+            <img src="~/Content/img/logo.jpg" alt="Logo Stacji Benzynowej" class="login-logo mb-4" />
+            <h2>Logowanie do Stacji Benzynowej</h2>
+            <!-- reszta formularza -->
+        </div>
         <section id="loginForm">
-            @* Używamy Html.BeginForm do stworzenia tagu form *@
-            @* Akcja "Login" będzie obsługiwana przez kontroler "Home" metodą POST *@
+
             @using (Html.BeginForm("Login", "Home", FormMethod.Post))
             {
-                @* Włącz token anty-CSRF dla bezpieczeństwa *@
                 @Html.AntiForgeryToken()
 
                 <hr />
 
-                @* Wyświetl ogólne błędy walidacji lub błąd logowania z kontrolera *@
+
                 @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
                 <div class="form-group">
-                    @* Etykieta generowana na podstawie modelu *@
+                  
                     @Html.LabelFor(m => m.Login, "Login")
-                    @* Pole tekstowe generowane na podstawie modelu, z atrybutami HTML *@
+              
                     @Html.EditorFor(m => m.Login, new { htmlAttributes = new { @class = "form-control", placeholder = "Wprowadź login" } })
-                    @* Wyświetl błędy walidacji dla pola Login *@
+                 
                     @Html.ValidationMessageFor(m => m.Login, "", new { @class = "text-danger" })
                 </div>
 
                 <div class="form-group">
-                    @* Etykieta dla hasła *@
+
                     @Html.LabelFor(m => m.Password, "Hasło")
-                    @* Pole hasła - Html.PasswordFor nie wstawia wartości *@
+
                     @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Wprowadź hasło" })
-                    @* Wyświetl błędy walidacji dla pola Password *@
+
                     @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
                 </div>
 
                 <div class="form-group">
-                    @* Przycisk typu submit, który wyśle formularz *@
-                    <button type="submit" class="btn btn-primary btn-block">Zaloguj</button> @* Poprawiony wygląd i tekst przycisku *@
+                  
+                    <button type="submit" class="btn btn-primary btn-block">Zaloguj</button> 
 
-                    @* Możesz zostawić link do testowego widoku, jeśli potrzebujesz, ale nie jest to przycisk logowania *@
-                    @* <p class="text-center mt-3">@Html.ActionLink("Przejdź do widoku Kasjera (Test)", "Cashier_view", "Cashier", null, new { @class = "btn btn-secondary" })</p> *@
                 </div>
-            } @* Koniec bloku using dla Html.BeginForm * *@
+
+            }
+       <a class="btn btn-primary btn-block"href="~/Content/Sprawozdanie/Sprawozdanie.pdf" target="_blank">
+   Sprawozdanie
+</a>   
         </section>
     </div>
 
-    @* Skrypty Bootstrapa (opcjonalne) *@
-    @* <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> *@
-    @* <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script> *@
-    @* <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> *@
-</body>
-</html>
 
+</body>
+
+</html>
+<style>
+    .login-logo {
+        display: block;
+        margin: 0 auto;
+        max-width: 180px;
+        height: auto;
+        margin-bottom:0 !important;
+    }
+</style>
     

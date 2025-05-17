@@ -9,12 +9,12 @@
 
 @using (Html.BeginForm("Create", "Customer", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
 {
-    @* Renderujemy widok częściowy z formularzem *@
+   
     @Html.Partial("_CreateCustomerForm", Model)
 
     <div class="form-group mt-4">
         <div class="col-md-offset-2 col-md-10">
-            @* Możesz dostosować klasy col-* dla Bootstrap 5, np. offset-md-2 *@
+ 
             <input type="submit" value="Utwórz klienta" class="btn btn-success" />
             @Html.ActionLink("Anuluj", "Index", "Customer", null, new { @class = "btn btn-secondary" })
         </div>

@@ -47,6 +47,11 @@
 
         <section class="left-panel">
             <div class="css-grid-container">
+                @{
+
+                    int i = 1;
+
+                }
 
                 @foreach (var item in items)
                 {
@@ -56,17 +61,21 @@
                             data-amount="@item.Amount"
                             data-price="@item.PriceAtSale"
                             data-value="@(item.Amount * item.PriceAtSale)">
-
+                        <span class="distributor-id">@(i++)</span>
                         <div class="distributor-name">@item.FuelName</div>
 
                         <div class="item-calculated-value">
                             @((item.Amount * item.PriceAtSale).ToString("N2", new System.Globalization.CultureInfo("pl-PL"))) zł
                         </div>
                         <div class="bottom-details">
-                            <span class="amount-display">Ilość: @item.Amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) L</span>
-                            <span class="price-display">Cena: @item.PriceAtSale.ToString("N2", System.Globalization.CultureInfo.InvariantCulture) zł/L</span>
+
+                            <span class="amount-display">Ilość: @item.Amount.ToString() L</span>
+                            <span class="price-display">Cena: @item.PriceAtSale.ToString() zł/L</span>
                         </div>
                     </button>
+
+                   
+                   
                 }
             </div>
 
@@ -83,6 +92,9 @@
                     <div id="productDetails"></div>
                     <button id="btnAddToOrder" class="action-btn">Dodaj do zamówienia</button>
                 </div>
+            </div>
+            <div class="logo-container">
+                <img src="~/Content/img/gas.png" alt="Gas" class="logo-small-bottom" />
             </div>
         </section>
 
@@ -107,7 +119,7 @@
             </div>
 
             <div class="payment-options">
-                <button class="payment-btn large-btn" id="btnCash">PŁATNOŚĆ</button>/>
+                <button class="payment-btn large-btn" id="btnCash">PŁATNOŚĆ</button>
             </div>
         </section>
     </main>
@@ -115,16 +127,12 @@
     <footer class="bottom-bar">
 
 
-        <span class="logout-button">
-            @using (Html.BeginForm("Logout", "Home", FormMethod.Post, new { id = "logoutForm" }))
-            {
-                @Html.AntiForgeryToken()
-                <a href="javascript:document.getElementById('logoutForm').submit()" class="btn btn-danger">Wyloguj</a>
-            } 
-        </span>
-        <div style="text-align: center; margin: 20px;">
-            <button id="btnRandomizeRefuelings" class="action-btn">Losuj Nowe Tankowania</button>
-        </div>
+        <form id="logoutForm" action="@Url.Action("Logout","Home")" method="post" class="logout-form">
+      @Html.AntiForgeryToken()
+      <button type="submit" class="btn btn-danger logout-form__btn">Wyloguj</button>
+    </form>
+    <button id="btnRandomizeRefuelings" class="action-btn bottom-bar__randomize">Losuj Nowe Tankowania</button>
+      
     </footer>
 </div>
 
@@ -135,10 +143,10 @@
 
     <script>
             document.addEventListener('DOMContentLoaded', () => {
-        // Przekaż ceny paliw do JavaScript
+
                 const fuelPrices = @Html.Raw(Json.Encode(fuelPrices));
 
-        // Inicjalizacja przycisków z rzeczywistymi cenami
+
         function initializeFuelButtons() {
             document.querySelectorAll('.grid-item-button').forEach((button, index) => {
                 const fuelId = (index % 3) + 1;
@@ -147,12 +155,12 @@
                 const price = fuelPrices[fuelId] || 5.50;
                 const value = amount * price;
 
-                // Aktualizuj dane przycisku
+
                 button.dataset.id = fuelId;
                 button.dataset.price = price.toFixed(2);
                 button.dataset.value = value.toFixed(2);
 
-                // Aktualizuj wyświetlane wartości
+ 
                 button.querySelector('.price-display').textContent = `Cena: ${price.toFixed(2).replace('.', ',')} zł/L`;
                 button.querySelector('.item-calculated-value').textContent = `${value.toFixed(2).replace('.', ',')} zł`;
             });
@@ -199,7 +207,7 @@
                 let fuelPrices = {};
                 let products = [];
                 let selectedProduct = null;
-
+               
                 fetchPrices();
                 fetchProducts();
                 initFuelButtons();
@@ -225,7 +233,7 @@
                     .then(r => r.ok ? r.json() : Promise.reject())
                     .then(data => {
                         fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {});
-                        // Automatycznie zaktualizuj przyciski po pobraniu nowych cen
+
                         updateFuelButtonsWithNewPrices();
                         return fuelPrices;
                     })
@@ -251,7 +259,7 @@
                     productSelect.innerHTML = '<option value="">-- Wyszukaj produkt --</option>';
 
                     products.forEach(p => {
-                        // Uwzględniamy strukturę ProductDTO z właściwościami ProductId, Name i Price
+
                         const option = new Option(`${p.Name} (${fmtPLN(p.Price)} zł)`, p.ProductId);
                         option.dataset.product = JSON.stringify(p);
                         productSelect.add(option);
@@ -259,7 +267,7 @@
                 }
 
                 function initFuelButtons() {
-                    // Najpierw zastosuj losowanie paliw przy inicjalizacji
+   
                     randomizeFuelsOnLoad();
 
                     fuelButtons.forEach(b => {
@@ -302,7 +310,7 @@
                         currentTotal -= value;
                         updateTotal();
                         div.remove();
-                        // Znajdź odpowiedni przycisk paliwa i zdeaktywuj go
+                        
                         const fuelButton = fuelButtons.find(b => b.dataset.id === fuelId);
                         if (fuelButton) {
                             fuelButton.classList.remove('active-refueling');
@@ -319,7 +327,7 @@
                         itemToRemove.remove();
                     }
 
-                    // Ponownie numerujemy pozycje
+
                     items.forEach((item, index) => {
                         if (item.querySelector('span')) {
                             item.querySelector('span').textContent = index + 1;
@@ -331,20 +339,20 @@
                     fuelButtons.forEach((b, index) => {
                         const fuelId = (index % 3) + 1;
                         const fuelName = fuelTypesMap[fuelId] || `Paliwo ${fuelId}`;
-                        const price = fuelPrices[fuelId] || 5.50; // Użyj ceny z serwera
+                        const price = fuelPrices[fuelId] || 5.50; 
                         const amount = (Math.random() * 39 + 1).toFixed(2);
                         const value = parseFloat(amount) * price;
 
-                        // Aktualizuj dane przycisku
+                
                         b.dataset.id = fuelId;
                         b.dataset.fuelName = fuelName;
                         b.dataset.amount = amount;
                         b.dataset.price = price.toFixed(2);
                         b.dataset.value = value.toFixed(2);
 
-                        // Aktualizuj wyświetlane wartości
+              
                         text(b, '.distributor-name', fuelName);
-                        text(b, '.amount-display', `${amount.replace('.', ',')} L`);
+                        text(b, '.amount-display', `${amount.replace('.', ',')}`);
                         text(b, '.price-display', `${fmtPLN(price)} zł/L`);
                         text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
 
@@ -356,7 +364,7 @@
                     return fetch('/Fuel/GetAllFuelsJson')
                         .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch fuel types'))
                         .then(data => {
-                            // Mapowanie ID na nazwy paliw
+                  
                             fuelTypesMap = {
                                 1: "Benzyna",
                                 2: "Diesel",
@@ -366,7 +374,7 @@
                         })
                         .catch(err => {
                             console.error('Error fetching fuel types:', err);
-                            // Domyślne wartości jeśli wystąpi błąd
+                      
                             fuelTypesMap = {
                                 1: "Benzyna",
                                 2: "Diesel",
@@ -382,7 +390,7 @@
                 function initRandomFuel() {
                     if (!btns.randomFuel) return;
                     btns.randomFuel.addEventListener('click', () => {
-                        // Usuń wszystkie pozycje paliw z paragonu
+                     
                         [...receiptItems.children].forEach(item => {
                             if (item.dataset.fuelId) {
                                 currentTotal -= parseNum(item.children[4].textContent.replace(',', '.'));
@@ -390,12 +398,12 @@
                             }
                         });
 
-                        // Zresetuj przyciski paliw
+             
                         fuelButtons.forEach(b => {
                             b.classList.remove('active-refueling');
                         });
 
-                        // Losuj nowe wartości
+              
                         fuelButtons.forEach((b, index) => {
                             const randomFuelId = Math.floor(Math.random() * 3) + 1;
                             const fuelName = fuelTypesMap[randomFuelId];
@@ -415,8 +423,8 @@
                             b.dataset.value = value.toFixed(2);
 
                             text(b, '.distributor-name', fuelName);
-                            text(b, '.amount-display', `Ilość: ${amount.replace('.', ',')} L`);
-                            text(b, '.price-display', `Cena: ${fmtPLN(price)} zł/L`);
+                            text(b, '.amount-display', `${amount.replace('.', ',')}`);
+                            text(b, '.price-display', `${fmtPLN(price)} zł/L`);
                             text(b, '.item-calculated-value', `${fmtPLN(value)} zł`);
 
                             applyFuelColorsToButton(b);
@@ -430,14 +438,14 @@
                     const fid = parseNum(button.dataset.id);
                     const fuelName = fuelTypesMap[fid] || '';
 
-                    // Remove all fuel-related classes
+       
                     button.classList.forEach(className => {
                         if (className.startsWith('fuel-type-')) {
                             button.classList.remove(className);
                         }
                     });
 
-                    // Add appropriate class based on fuel type
+     
                     if (fid === 1) { // Benzyna
                         button.classList.add('fuel-type-benzyna');
                     } else if (fid === 2) { // Diesel
@@ -503,7 +511,7 @@
                                 i.remove();
                             });
                     }
-                    // Dodatkowo można dodać obsługę usuwania wybranego paliwa jeśli potrzebne
+
                 }
 
                 function initCustomerModal() {
@@ -525,7 +533,7 @@
                             }).catch(() => alertIn(customerAlert, 'Błąd połączenia', 'danger'));
                     });
                     addCustomerModal && addCustomerModal.addEventListener('hidden.bs.modal', () => customerAlert.innerHTML = '');
-                } // Correct closing brace for initCustomerModal
+                } 
 
 
                 function initProductModal() {
@@ -549,7 +557,7 @@
                     });
                     addProductModal && addProductModal.addEventListener('hidden.bs.modal', () => productAlert.innerHTML = '');
 
-                } // Correct closing brace for initCustomerModal
+                } 
 
 
                 function initChangeFuelModal() {
@@ -560,7 +568,7 @@
                     const btnSavePrice = document.getElementById('btnSaveFuelPrice');
                     const changeFuelPriceForm = document.getElementById('changeFuelPriceForm');
 
-                    // Clear alerts when modal is hidden
+                   
                     changeFuelModal.addEventListener('hidden.bs.modal', () => {
                         priceAlert.innerHTML = '';
                         changeFuelPriceForm.reset();
@@ -576,7 +584,7 @@
 
                         const fuelId = fuelTypeSelect.value;
                         const newPrice = parseFloat(newPriceInput.value);
-                        const employeePesel = loggedInEmployeePesel; // Tutaj powinieneś pobrać prawdziwy PESEL pracownika!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        const employeePesel = loggedInEmployeePesel; 
 
                         if (!fuelId || !newPrice || !employeePesel) {
                             showAlert(priceAlert, 'Wszystkie pola są wymagane', 'danger');
@@ -584,14 +592,14 @@
                         }
 
                         try {
-                            // Prepare data for API
+                            
                             const data = {
                                 FuelId: parseInt(fuelId),
                                 Price: newPrice,
                                 EmployeePesel: employeePesel
                             };
 
-                            // Call API to update price
+                           
                             const response = await fetch('/Fuel/AddNewPrice', {
                                 method: 'POST',
                                 headers: {
@@ -608,10 +616,10 @@
                                 await fetchPrices();
                                 updateFuelButtonsWithNewPrices();
                                 updateTotalAfterPriceChange();
-                                // Aktualizacja cen w interfejsie
+                              
                                 updateFuelPriceInUI(fuelId, newPrice);
 
-                                // Close modal after 2 seconds
+                                
                                 setTimeout(() => {
                                     bootstrap.Modal.getInstance(changeFuelModal).hide();
                                 }, 2000);
@@ -626,20 +634,19 @@
                 }
 
                 function updateFuelPriceInUI(fuelId, newPrice) {
-                    // 1. Aktualizacja przycisków paliw
+                  
                     fuelButtons.forEach(button => {
                         if (button.dataset.id === fuelId) {
                             const amount = parseFloat(button.dataset.amount);
                             const value = amount * newPrice;
 
-                            // Aktualizacja danych w przycisku
+                         
                             button.dataset.price = newPrice.toFixed(2);
                             button.dataset.value = value.toFixed(2);
 
-                            // Aktualizacja wyświetlanych wartości
                             const priceDisplay = button.querySelector('.price-display');
                             if (priceDisplay) {
-                                priceDisplay.textContent = `Cena: ${newPrice.toFixed(2).replace('.', ',')} zł/L`;
+                                priceDisplay.textContent = `${newPrice.toFixed(2).replace('.', ',')} zł/L`;
                             }
 
                             const valueDisplay = button.querySelector('.item-calculated-value');
@@ -649,14 +656,14 @@
                         }
                     });
 
-                    // 2. Aktualizacja pozycji na paragonie (jeśli są)
+         
                     const receiptItems = document.querySelectorAll('#receiptItems .receipt-item');
                     receiptItems.forEach(item => {
                         if (item.dataset.fuelId === fuelId) {
                             const amount = parseFloat(item.children[2].textContent.replace(',', '.'));
                             const value = amount * newPrice;
 
-                            // Aktualizacja ceny i wartości
+                  
                             item.children[3].textContent = newPrice.toFixed(2).replace('.', ',');
                             item.children[4].textContent = value.toFixed(2).replace('.', ',');
 
@@ -704,7 +711,7 @@
                             // Update displayed price
                             const priceDisplay = button.querySelector('.price-display');
                             if (priceDisplay) {
-                                priceDisplay.textContent = `Cena: ${currentPrice.toFixed(2).replace('.', ',')} zł/L`;
+                                priceDisplay.textContent = `${currentPrice.toFixed(2).replace('.', ',')} zł/L`;
                             }
 
                             // Update displayed value

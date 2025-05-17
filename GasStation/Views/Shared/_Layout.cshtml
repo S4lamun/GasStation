@@ -5,23 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - Stacja Benzynowa</title>
     @Styles.Render("~/Content/css")
-    @* Dodaj link do Bootstrapa, jeśli używasz *@
-    @* <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous"> *@
-    <link href="~/Content/css/kasjer-style.css" rel="stylesheet" />
+   
 </head>
 <body>
-    @* Możesz dodać stały nagłówek/stopkę, jeśli są potrzebne poza głównym interfejsem kasjera *@
+
     <div class="container-fluid body-content">
-        @* Użyj container-fluid dla pełnej szerokości *@
+
         @RenderBody()
-        <hr />
-        <footer>
-            <p>&copy; @DateTime.Now.Year - Projekt Stacja Benzynowa MVC</p>
-        </footer>
+
     </div>
 
-    @Scripts.Render("~/bundles/jquery") @* Jeśli używasz jQuery z bundlera *@
-    @* @Scripts.Render("~/bundles/bootstrap") *@ @* Jeśli używasz Bootstrapa z bundlera *@
+    @Scripts.Render("~/bundles/jquery") 
+
  
    
     @RenderSection("Scripts", required: false)

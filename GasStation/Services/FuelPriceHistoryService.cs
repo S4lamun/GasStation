@@ -1,11 +1,6 @@
-﻿// Services/FuelPriceHistoryService.cs
-using GasStation.Data; // DbContext
-using GasStation.DTO; // DTOs
-using GasStation.Models; // EF Entities
-using System.Collections.Generic;
+﻿using GasStation.Data; using GasStation.DTO; using GasStation.Models; using System.Collections.Generic;
 using System.Linq;
-using System.Data.Entity; // For Include()
-using System;
+using System.Data.Entity; using System;
 
 namespace GasStation.Services
 {
@@ -22,10 +17,8 @@ namespace GasStation.Services
             _employeeService = employeeService;
         }
 
-        // --- Private Helper Methods for Mapping ---
-
-        // Maps FuelPriceHistory entity (with included related data) to FuelPriceHistoryDTO
-        private FuelPriceHistoryDTO MapToDto(FuelPriceHistory history)
+        
+                private FuelPriceHistoryDTO MapToDto(FuelPriceHistory history)
         {
             if (history == null) return null;
 
@@ -45,10 +38,8 @@ namespace GasStation.Services
         }
 
 
-        // --- Public Service Methods ---
-
-        // Get all price history entries
-        public List<FuelPriceHistoryDTO> GetAllPriceHistories()
+        
+                public List<FuelPriceHistoryDTO> GetAllPriceHistories()
         {
             var history = _context.FuelPriceHistories
                                   .Include(h => h.Fuel)
@@ -59,8 +50,7 @@ namespace GasStation.Services
             return history.Select(h => MapToDto(h)).ToList();
         }
 
-        // Get price history entry by ID
-        public FuelPriceHistoryDTO GetPriceHistoryById(int id)
+                public FuelPriceHistoryDTO GetPriceHistoryById(int id)
         {
             var history = _context.FuelPriceHistories
                                   .Include(h => h.Fuel)
@@ -70,8 +60,7 @@ namespace GasStation.Services
             return MapToDto(history);
         }
 
-        // Get price history entries for a specific fuel
-        public List<FuelPriceHistoryDTO> GetPriceHistoryForFuel(int fuelId)
+                public List<FuelPriceHistoryDTO> GetPriceHistoryForFuel(int fuelId)
         {
             var fuelExists = _context.Fuels.Any(f => f.FuelId == fuelId);
             if (!fuelExists)
@@ -90,8 +79,7 @@ namespace GasStation.Services
         }
 
 
-        // Add a new price entry
-        public FuelPriceHistoryDTO AddNewPrice(CreateFuelPriceHistoryDTO newPriceDto)
+                public FuelPriceHistoryDTO AddNewPrice(CreateFuelPriceHistoryDTO newPriceDto)
         {
             if (newPriceDto == null) throw new ArgumentNullException(nameof(newPriceDto));
 
@@ -101,8 +89,7 @@ namespace GasStation.Services
             var employee = _context.Employees.Find(newPriceDto.EmployeePesel);
             if (employee == null) throw new BusinessLogicException($"Employee with PESEL {newPriceDto.EmployeePesel} not found.");
 
-            // Determine the actual start date for the new price entry
-            DateTime startDateForNew = newPriceDto.DateFrom ?? DateTime.Now;
+                        DateTime startDateForNew = newPriceDto.DateFrom ?? DateTime.Now;
 
             var currentActivePrice = _context.FuelPriceHistories
                                              .Where(h => h.FuelId == newPriceDto.FuelId)
@@ -117,8 +104,7 @@ namespace GasStation.Services
                     throw new BusinessLogicException($"New price start date ({startDateForNew}) must be after the previous active price start date ({currentActivePrice.DateFrom}).");
                 }
 
-                // Set the end date of the previous price to just before the new price starts
-                currentActivePrice.DateTo = startDateForNew.AddMilliseconds(-1);
+                                currentActivePrice.DateTo = startDateForNew.AddMilliseconds(-1);
             }
 
             var newPriceEntry = new FuelPriceHistory
@@ -142,8 +128,7 @@ namespace GasStation.Services
             return MapToDto(createdEntry);
         }
 
-        // Update an existing price history entry (use with caution)
-        public FuelPriceHistoryDTO UpdatePriceEntry(FuelPriceHistoryDTO historyDto)
+                public FuelPriceHistoryDTO UpdatePriceEntry(FuelPriceHistoryDTO historyDto)
         {
             var existingEntry = _context.FuelPriceHistories.Find(historyDto.FuelPriceHistoryId);
             if (existingEntry == null)
@@ -151,8 +136,7 @@ namespace GasStation.Services
                 throw new BusinessLogicException($"Fuel price history entry with ID {historyDto.FuelPriceHistoryId} not found for update.");
             }
 
-            // Complex date range validation
-            DateTime endDateToCheck = historyDto.DateTo ?? DateTime.MaxValue;
+                        DateTime endDateToCheck = historyDto.DateTo ?? DateTime.MaxValue;
 
             var overlappingEntries = _context.FuelPriceHistories
                                              .Where(h => h.FuelId == existingEntry.FuelId)
@@ -168,14 +152,12 @@ namespace GasStation.Services
                 throw new BusinessLogicException($"Updated dates for entry {historyDto.FuelPriceHistoryId} cause overlaps with other price history entries for fuel ID {existingEntry.FuelId}.");
             }
 
-            // Check that start date is before end date if end date is provided
-            if (historyDto.DateTo.HasValue && historyDto.DateFrom >= historyDto.DateTo.Value)
+                        if (historyDto.DateTo.HasValue && historyDto.DateFrom >= historyDto.DateTo.Value)
             {
                 throw new BusinessLogicException("Start date must be before end date.");
             }
 
-            // Update properties
-            existingEntry.Price = historyDto.Price;
+                        existingEntry.Price = historyDto.Price;
             existingEntry.DateFrom = historyDto.DateFrom;
             existingEntry.DateTo = historyDto.DateTo;
 
@@ -189,8 +171,7 @@ namespace GasStation.Services
             return MapToDto(updatedEntry);
         }
 
-        // Delete a price history entry (use with extreme caution)
-        public void DeletePriceEntry(int id)
+                public void DeletePriceEntry(int id)
         {
             var entryToDelete = _context.FuelPriceHistories
                                         .SingleOrDefault(h => h.FuelPriceHistoryId == id);
@@ -200,8 +181,7 @@ namespace GasStation.Services
                 return;
             }
 
-            // Complex dependency check
-            var isUsedInRefueling = _context.RefuelingEntries
+                        var isUsedInRefueling = _context.RefuelingEntries
                                             .Include(re => re.Order)
                                             .Any(re => re.FuelId == entryToDelete.FuelId &&
                                                         re.Order.OrderDate >= entryToDelete.DateFrom &&
@@ -213,8 +193,7 @@ namespace GasStation.Services
                 throw new BusinessLogicException($"Cannot remove fuel price history entry {id} as it was used for refueling transactions.");
             }
 
-            // Handle potential gaps/overlaps with adjacent entries after deletion (logic omitted)
-
+            
             _context.FuelPriceHistories.Remove(entryToDelete);
             _context.SaveChanges();
         }

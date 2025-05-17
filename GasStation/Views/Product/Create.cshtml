@@ -9,6 +9,7 @@
 <h2>@ViewBag.Title</h2>
 
 @using (Html.BeginForm("Create", "Product", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+{ 
 @Html.Partial("_CreateProductForm", Model)
 
     <div class="form-group mt-4">

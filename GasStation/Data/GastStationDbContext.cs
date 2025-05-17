@@ -9,8 +9,7 @@ namespace GasStation.Data
         {
         }
 
-        // Usunięto DbSet<Person>
-        public DbSet<Customer> Customers { get; set; }
+                public DbSet<Customer> Customers { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Fuel> Fuels { get; set; }
         public DbSet<FuelPriceHistory> FuelPriceHistories { get; set; }
@@ -21,28 +20,13 @@ namespace GasStation.Data
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            // Usunięto konfigurację mapowania dla Person
-            // modelBuilder.Entity<Person>().ToTable("People");
-
-            // Konfiguracje dla Customers i Employees pozostają,
-            // ponieważ są teraz niezależnymi tabelami z własnymi kluczami.
-            modelBuilder.Entity<Customer>().ToTable("Customers");
+                        
+                                    modelBuilder.Entity<Customer>().ToTable("Customers");
             modelBuilder.Entity<Employee>().ToTable("Employees");
 
-            // Usunięto poprzednie konfiguracje HasRequired/WithOptional, które powodują problemy
-            // (te były związane z mapowaniem TPT i nie są już potrzebne)
-            // modelBuilder.Entity<Employee>()
-            //     .HasRequired(e => e.Person)
-            //     .WithOptional()
-            //     .Map(m => m.MapKey("Pesel"));
-
-            // modelBuilder.Entity<Customer>()
-            //     .HasRequired(c => c.Person)
-            //     .WithOptional()
-            //     .Map(m => m.MapKey("Pesel"));
-
-            // Te linie konfiguracyjne dla opcjonalnych kluczy obcych są poprawne i pozostają
-            modelBuilder.Entity<OrderSpecification>()
+                                                                        
+                                                
+                        modelBuilder.Entity<OrderSpecification>()
                 .HasOptional(os => os.RefuelingEntry)
                 .WithMany(re => re.OrderSpecifications)
                 .HasForeignKey(os => os.RefuelingEntryId);

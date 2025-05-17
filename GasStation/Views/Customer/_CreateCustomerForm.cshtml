@@ -1,11 +1,8 @@
 ﻿@model GasStation.DTO.CustomerDTO
-@* Upewnij się, że przestrzeń nazw GasStation.DTO jest dostępna *@
 
-@* Ten token jest kluczowy dla bezpieczeństwa przy żądaniach POST.
-    Musi być wewnątrz formularza, który będzie przesyłany. *@
 @Html.AntiForgeryToken()
 
-@* Do wyświetlania ogólnych błędów walidacji modelu, jeśli nie są powiązane z konkretnym polem. *@
+
 @Html.ValidationSummary(false, "", new { @class = "text-danger mb-3", id = "customerFormValidationSummary" })
 
 <div class="mb-3">

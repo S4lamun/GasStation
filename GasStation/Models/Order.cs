@@ -1,5 +1,4 @@
-﻿// Order.cs
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
 using System;
@@ -32,11 +31,9 @@ namespace GasStation.Models
 
 
         [Required]
-        public decimal TotalAmount { get; set; } // Sum of all item totals
+        public decimal TotalAmount { get; set; } 
 
-
-        //Navigation properties
-        public virtual ICollection<RefuelingEntry> RefuelingEntries { get; set; }
+                public virtual ICollection<RefuelingEntry> RefuelingEntries { get; set; }
         public virtual ICollection<OrderSpecification> OrderSpecifications { get; set; }
     }
 }

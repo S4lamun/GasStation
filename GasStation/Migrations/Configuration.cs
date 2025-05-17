@@ -6,7 +6,6 @@ using System.Data.Entity.Migrations;
 using System.Data.Entity.Validation;
 using System.Diagnostics;
 using System.Linq;
-// using System.Web.Compilation; // Zazwyczaj niepotrzebne w Configuration.cs, można usunąć jeśli nieużywane
 
 namespace GasStation.Migrations
 {
@@ -19,15 +18,10 @@ namespace GasStation.Migrations
 
 		protected override void Seed(GasStation.Data.GasStationDbContext context)
 		{
-			// Usunięto zewnętrzny warunek if (!context.Customers.Any() && !context.Employees.Any())
-			// Aby seeding uruchamiał się przy każdym Update-Database (gdy są migracje)
-			// i polegał na AddOrUpdate do zarządzania istniejącymi danymi.
-
+									
 			Trace.TraceInformation("Starting Seed method execution...");
 
-			// --- Dodaj Klientów ---
-			// Dodajemy kilku przykładowych klientów
-			var customers = new List<Customer>
+									var customers = new List<Customer>
 			{
 				new Customer
 				{
@@ -58,23 +52,18 @@ namespace GasStation.Migrations
 			};
 
 			context.Customers.AddOrUpdate(
-				c => c.Nip, // Klucz używany do sprawdzania czy obiekt już istnieje
-				customers.ToArray()
+				c => c.Nip, 				customers.ToArray()
 			);
 			Trace.TraceInformation("Customers staged (AddOrUpdate).");
 
-			// --- Dodaj Pracowników ---
-			// Dodajemy kilku przykładowych pracowników (Admin i inni)
-			var employees = new List<Employee>
+									var employees = new List<Employee>
 			{
-				 new Employee // Admin Systemowy - pierwszy pracownik
-                {
+				 new Employee                 {
 					Pesel = "22334455667",
 					Name = "Admin",
 					Surname = "Systemowy",
 					Login = "admin",
-					Password = "SecurePassword123" // Pamiętaj o zabezpieczaniu haseł w rzeczywistej aplikacji!
-                },
+					Password = "SecurePassword123"                 },
 				 new Employee
 				{
 					Pesel = "55667788990",
@@ -94,15 +83,11 @@ namespace GasStation.Migrations
 			};
 
 			context.Employees.AddOrUpdate(
-				e => e.Pesel, // Klucz używany do sprawdzania czy obiekt już istnieje
-				employees.ToArray()
+				e => e.Pesel, 				employees.ToArray()
 			);
 			Trace.TraceInformation("Employees staged (AddOrUpdate).");
 
-			// --- ZAPISZ ZMIANY DLA KLIENTÓW I PRACOWNIKÓW ---
-			// Zapisujemy teraz, aby obiekty Employees istniały w bazie i mogły być pobrane
-			// do powiązania z FuelPriceHistory.
-			try
+												try
 			{
 				Trace.TraceInformation("Saving staged Customers and Employees...");
 				context.SaveChanges();
@@ -123,20 +108,16 @@ namespace GasStation.Migrations
 					}
 				}
 				Debug.WriteLine("-----------------------------------------------------");
-				throw; // Rethrow after logging
-			}
+				throw; 			}
 			catch (Exception ex)
 			{
 				Trace.TraceError("An unexpected error occurred during saving Customers/Employees: {0}", ex.Message);
 				Debug.WriteLine("An unexpected error occurred during saving Customers/Employees: " + ex.Message);
 				Debug.WriteLine(ex.StackTrace);
-				throw; // Rethrow
-			}
+				throw; 			}
 
 
-			// --- Dodaj Typy Paliw ---
-			// Dodajemy podstawowe typy paliw
-			var fuels = new List<Fuel>
+									var fuels = new List<Fuel>
 			{
 				new Fuel { FuelName = "Benzyna"},
 				new Fuel { FuelName = "Diesel"},
@@ -145,15 +126,11 @@ namespace GasStation.Migrations
 			};
 
 			context.Fuels.AddOrUpdate(
-				f => f.FuelName, // Klucz do sprawdzania, czy paliwo o danej nazwie już istnieje
-				fuels.ToArray()
+				f => f.FuelName, 				fuels.ToArray()
 			);
 			Trace.TraceInformation("Fuels staged (AddOrUpdate).");
 
-			// --- ZAPISZ ZMIANY DLA PALIW ---
-			// Zapisujemy teraz, aby obiekty Fuel istniały w bazie i mogły być pobrane
-			// do powiązania z FuelPriceHistory.
-			try
+												try
 			{
 				Trace.TraceInformation("Saving staged Fuels...");
 				context.SaveChanges();
@@ -174,25 +151,17 @@ namespace GasStation.Migrations
 					}
 				}
 				Debug.WriteLine("-----------------------------------------------------");
-				throw; // Rethrow after logging
-			}
+				throw; 			}
 			catch (Exception ex)
 			{
 				Trace.TraceError("An unexpected error occurred during saving Fuels: {0}", ex.Message);
 				Debug.WriteLine("An unexpected error occurred during saving Fuels: " + ex.Message);
 				Debug.WriteLine(ex.StackTrace);
-				throw; // Rethrow
-			}
+				throw; 			}
 
 
-			// --- Dodaj Historię Cen Paliw ---
-			// Teraz, gdy Pracownicy i Paliwa są zapisani w bazie, możemy ich bezpiecznie pobrać
-			// i użyć ich do zbudowania relacji w FuelPriceHistory.
-			Trace.TraceInformation("Retrieving Employees and Fuels for relationships...");
-			// Użyj Single() - zakłada, że rekord ZAWSZE istnieje po poprzednich AddOrUpdate i SaveChanges.
-			// Jeśli może nie istnieć (co w seedingu jest mało prawdopodobne dla danych podstawowych),
-			// użyj SingleOrDefault() i sprawdź czy nie jest nullem.
-			var adminEmployee = context.Employees.Single(e => e.Pesel == "22334455667");
+												Trace.TraceInformation("Retrieving Employees and Fuels for relationships...");
+												var adminEmployee = context.Employees.Single(e => e.Pesel == "22334455667");
 			var januszEmployee = context.Employees.Single(e => e.Pesel == "55667788990");
 
 			var benzyna = context.Fuels.Single(f => f.FuelName == "Benzyna");
@@ -203,26 +172,16 @@ namespace GasStation.Migrations
 
 			var priceHistories = new List<FuelPriceHistory>
 			{
-                // Historia cen dla Benzyny 
-                new FuelPriceHistory
+                                new FuelPriceHistory
 				{
-					Fuel = benzyna, // Powiąż z obiektem paliwa
-                    Price = 6.50m, // Użyj 'm' dla typu decimal
-                    DateFrom = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc), // Data rozpoczęcia obowiązywania ceny
-                    DateTo = new DateTime(2025, 5, 7, 23, 59, 59, DateTimeKind.Utc), // Data zakończenia obowiązywania ceny
-                    Employee = adminEmployee // Powiąż z obiektem pracownika, który ustalił cenę
-                },
+					Fuel = benzyna,                     Price = 6.50m,                     DateFrom = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc),                     DateTo = new DateTime(2025, 5, 7, 23, 59, 59, DateTimeKind.Utc),                     Employee = adminEmployee                 },
 				 new FuelPriceHistory
 				{
 					Fuel = benzyna,
 					Price = 6.70m,
-					DateFrom = new DateTime(2025, 5, 8, 0, 0, 0, DateTimeKind.Utc), // Nowa cena od tej daty
-                    DateTo = null, // null oznacza cenę aktualnie obowiązującą
-                    Employee = januszEmployee // Przykładowa zmiana ceny przez innego pracownika
-                },
+					DateFrom = new DateTime(2025, 5, 8, 0, 0, 0, DateTimeKind.Utc),                     DateTo = null,                     Employee = januszEmployee                 },
 
-                // Historia cen dla Diesla (dwie zmiany ceny)
-                 new FuelPriceHistory
+                                 new FuelPriceHistory
 				{
 					Fuel = diesel,
 					Price = 6.30m,
@@ -239,33 +198,24 @@ namespace GasStation.Migrations
                     Employee = adminEmployee
 				},
 
-                // Historia cen dla LPG (jedna cena)
-                 new FuelPriceHistory
+                                 new FuelPriceHistory
 				{
 					Fuel = lpg,
 					Price = 2.80m,
 					DateFrom = new DateTime(2025, 5, 9, 0, 0, 0, DateTimeKind.Utc),
-					DateTo = null, // Cena aktualna od tej daty
-                    Employee = januszEmployee // Przykładowa cena ustalona przez innego pracownika
-                },
+					DateTo = null,                     Employee = januszEmployee                 },
 
 
 
 			};
 
-			// Dodaj lub zaktualizuj historię cen. Kluczem identyfikującym historyczny wpis
-			// jest kombinacja ID paliwa i daty rozpoczęcia obowiązywania ceny (DateFrom).
-			// Zapewnia to, że dla tego samego paliwa, zmiana ceny od innej daty jest
-			// dodawana jako nowy rekord historii, a nie aktualizuje poprzedniego.
-			context.FuelPriceHistories.AddOrUpdate(
-				h => new { h.FuelId, h.DateFrom }, // Klucz złożony: ID paliwa i data rozpoczęcia
-				priceHistories.ToArray()
+															context.FuelPriceHistories.AddOrUpdate(
+				h => new { h.FuelId, h.DateFrom }, 				priceHistories.ToArray()
 			);
 			Trace.TraceInformation("Fuel price history staged (AddOrUpdate).");
 
 
-			// --- Dodaj Produkty (Nowa Sekcja) ---
-			Trace.TraceInformation("Staging Products...");
+						Trace.TraceInformation("Staging Products...");
 			var products = new List<Product>
 			{
 				new Product { Name = "Ciasteczko", Price = 2.50m },
@@ -276,15 +226,12 @@ namespace GasStation.Migrations
 			};
 
 			context.Products.AddOrUpdate(
-				p => p.Name, // Klucz do sprawdzania, czy produkt o danej nazwie już istnieje
-				products.ToArray()
+				p => p.Name, 				products.ToArray()
 			);
 			Trace.TraceInformation("Products staged (AddOrUpdate).");
 
 
-			// --- ZAPISZ WSZYSTKIE POZOSTAŁE ZMIANY ---
-			// Ten SaveChanges zapisze przede wszystkim FuelPriceHistory.
-			try
+									try
 			{
 				Trace.TraceInformation("Saving final staged changes...");
 				context.SaveChanges();
@@ -292,8 +239,7 @@ namespace GasStation.Migrations
 			}
 			catch (DbEntityValidationException ex)
 			{
-				// Logowanie błędów walidacji encji - bardzo przydatne przy problemach z Seed
-				Trace.TraceError("DbEntityValidationException during final SaveChanges:");
+								Trace.TraceError("DbEntityValidationException during final SaveChanges:");
 				Debug.WriteLine("DbEntityValidationException during final SaveChanges:");
 				foreach (var validationErrors in ex.EntityValidationErrors)
 				{
@@ -306,16 +252,13 @@ namespace GasStation.Migrations
 					}
 				}
 				Debug.WriteLine("-----------------------------------------------------");
-				throw; // Ponownie rzuć wyjątek po zalogowaniu błędów
-			}
+				throw; 			}
 			catch (Exception ex)
 			{
-				// Logowanie innych błędów
-				Trace.TraceError("An unexpected error occurred during final SaveChanges: {0}", ex.Message);
+								Trace.TraceError("An unexpected error occurred during final SaveChanges: {0}", ex.Message);
 				Debug.WriteLine("An unexpected error occurred during final SaveChanges: " + ex.Message);
 				Debug.WriteLine(ex.StackTrace);
-				throw; // Ponownie rzuć wyjątek
-			}
+				throw; 			}
 
 			Trace.TraceInformation("Seed method execution finished.");
 

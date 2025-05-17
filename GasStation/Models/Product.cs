@@ -20,8 +20,7 @@ namespace GasStation.Models
         [StringLength(50)]
         public string Name { get; set; }
 
-        //Navigation property
-        public virtual ICollection<OrderSpecification> OrderSpecifications { get; set; }
+                public virtual ICollection<OrderSpecification> OrderSpecifications { get; set; }
 
 
     }

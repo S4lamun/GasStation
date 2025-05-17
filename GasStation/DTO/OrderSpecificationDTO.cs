@@ -12,17 +12,14 @@ namespace GasStation.DTO
         public decimal PriceAtSale { get; set; }
         public int? OrderId { get; set; }
 
-        // Product details (null for fuel items)
-        public int? ProductId { get; set; }
+                public int? ProductId { get; set; }
         public string ProductName { get; set; }
         public decimal? ProductPrice { get; set; }
 
-        // Refueling details (null for product items)
-        public int? RefuelingEntryId { get; set; }
+                public int? RefuelingEntryId { get; set; }
         public RefuelingEntryDTO RefuelingEntryDetails { get; set; }
 
-        // Calculated fields
-        public decimal ItemTotal { get; set; }
+                public decimal ItemTotal { get; set; }
         public bool IsFuel { get; set; }
     }
 

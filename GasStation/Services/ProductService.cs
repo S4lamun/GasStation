@@ -17,8 +17,7 @@ namespace GasStation.Services
             _context = context;
         }
 
-        // Get all products
-        public List<ProductDTO> GetAllProducts()
+                public List<ProductDTO> GetAllProducts()
         {
             var products = _context.Products.ToList();
             return products.Select(p=> new ProductDTO
@@ -39,8 +38,7 @@ namespace GasStation.Services
             };
             _context.Products.Add(product);
             _context.SaveChanges();
-            productDTO.ProductId = product.ProductId; // Set the ID of the newly created product
-            return productDTO;
+            productDTO.ProductId = product.ProductId;             return productDTO;
         }
 
         public ProductDTO UpdateProductPrice(ProductDTO productDTO, decimal newPrice)
@@ -48,8 +46,7 @@ namespace GasStation.Services
             var product = _context.Products.Find(productDTO.ProductId);
             if (product == null)
             {
-                return null; // Product not found
-            }
+                return null;             }
             if(newPrice <= 0)
             {
                 throw new ArgumentException("Price must be positive.");
@@ -74,8 +71,7 @@ namespace GasStation.Services
             var product = _context.Products.FirstOrDefault(p => p.Name == name);
             if (product == null)
             {
-                return null; // Product not found
-            }
+                return null;             }
             return new ProductDTO
             {
                 ProductId = product.ProductId,

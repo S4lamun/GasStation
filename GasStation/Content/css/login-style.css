@@ -1,71 +1,41 @@
-﻿/* Content/css/login-style.css */
-
+﻿
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #e9ecef; /* Jasnoszare tło dla całej strony */
-    display: flex;
-    align-items: center; /* Wyśrodkowanie w pionie */
-    justify-content: center; /* Wyśrodkowanie w poziomie */
-    min-height: 100vh; /* Minimalna wysokość na cały ekran */
-    margin: 0;
+    background-color: #e9ecef;     display: flex;
+    align-items: center;     justify-content: center;     min-height: 100vh;     margin: 0;
 }
 
 .login-container {
-    max-width: 450px; /* Maksymalna szerokość kontenera logowania */
-    width: 100%; /* Zajmuje całą dostępną szerokość do max-width */
-    padding: 35px 30px; /* Wewnętrzne odstępy */
-    background-color: #ffffff; /* Białe tło formularza */
-    border-radius: 8px; /* Zaokrąglone rogi */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Wyraźniejszy cień */
-    border-top: 5px solid #5cb85c; /* Zielony akcent na górze */
-}
+    max-width: 450px;     width: 100%;     padding: 35px 30px;     background-color: #ffffff;     border-radius: 8px;     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);     border-top: 5px solid #5cb85c; }
 
     .login-container h2 {
         text-align: center;
-        margin-bottom: 30px; /* Większy odstęp pod nagłówkiem */
-        color: #333333; /* Ciemniejszy kolor nagłówka */
-        font-weight: 600; /* Grubsza czcionka */
-    }
+        margin-bottom: 30px;         color: #333333;         font-weight: 600;     }
 
 .form-group {
-    margin-bottom: 20px; /* Odstęp między grupami pól */
-}
+    margin-bottom: 20px; }
 
     .form-group label {
-        font-weight: 600; /* Grubsza czcionka dla etykiet */
-        color: #555555; /* Kolor etykiet */
-        display: block; /* Etykieta w nowej linii */
-        margin-bottom: 8px; /* Odstęp pod etykietą */
-    }
+        font-weight: 600;         color: #555555;         display: block;         margin-bottom: 8px;     }
 
-.form-control { /* Styl dla pól input Bootstrapa lub własnych */
-    border-radius: 5px; /* Lekko zaokrąglone rogi pól */
-    padding: 12px 15px; /* Większy padding w polach */
-    border: 1px solid #ced4da; /* Standardowa ramka Bootstrapa */
-    font-size: 1rem;
+.form-control {     border-radius: 5px;     padding: 12px 15px;     border: 1px solid #ced4da;     font-size: 1rem;
 }
 
-    .form-control:focus { /* Styl dla aktywnego pola */
-        border-color: #80bdff;
+    .form-control:focus {         border-color: #80bdff;
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
 
 .btn-login {
-    background-color: #5cb85c; /* Zielony kolor przycisku */
-    border-color: #4cae4c;
+    background-color: #5cb85c;     border-color: #4cae4c;
     color: white;
-    padding: 12px 0; /* Padding góra/dół */
-    font-size: 16px;
+    padding: 12px 0;     font-size: 16px;
     font-weight: bold;
-    width: 100%; /* Przycisk na całą szerokość kontenera */
-    border-radius: 5px; /* Zaokrąglone rogi przycisku */
-    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    width: 100%;     border-radius: 5px;     transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
     .btn-login:hover,
     .btn-login:focus {
-        background-color: #4a9b4a; /* Ciemniejszy zielony po najechaniu */
-        border-color: #3e813e;
+        background-color: #4a9b4a;         border-color: #3e813e;
         color: white;
     }
 
@@ -76,22 +46,17 @@ hr {
     border-top: 1px solid #eee;
 }
 
-/* Style dla komunikatów walidacji, jeśli będziesz ich używać z helperami MVC */
 .text-danger {
-    color: #dc3545; /* Czerwony kolor dla błędów */
-    font-size: 0.875em; /* Mniejsza czcionka dla komunikatów błędów */
-}
+    color: #dc3545;     font-size: 0.875em; }
 
 .validation-summary-errors ul {
-    list-style-type: none; /* Usuń kropki z listy błędów */
-    padding-left: 0;
+    list-style-type: none;     padding-left: 0;
     margin-bottom: 15px;
 }
 
 .validation-summary-errors li {
     padding: 5px;
-    background-color: #f8d7da; /* Jasnoczerwone tło dla błędów */
-    border: 1px solid #f5c6cb;
+    background-color: #f8d7da;     border: 1px solid #f5c6cb;
     border-radius: 4px;
     margin-bottom: 5px;
 }

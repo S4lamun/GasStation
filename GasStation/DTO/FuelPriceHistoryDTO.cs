@@ -23,31 +23,27 @@ namespace GasStation.DTO
         public DateTime? DateTo { get; set; }
 
 
-        // Related entity data for display
-        public int FuelId { get; set; }
+                public int FuelId { get; set; }
         public string FuelName { get; set; }
 
         public string EmployeePesel { get; set; }
         public string EmployeeFullName { get; set; }
     }
 
-    // DTO for creating a new Fuel Price History entry
-    public class CreateFuelPriceHistoryDTO
+        public class CreateFuelPriceHistoryDTO
     {
         [Required(ErrorMessage = "Price is required.")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive.")]
         [DataType(DataType.Currency)]
         public decimal Price { get; set; }
 
-        // DateFrom can be optionally provided by user or set to DateTime.Now in Service
-        [DataType(DataType.DateTime)]
+                [DataType(DataType.DateTime)]
         public DateTime? DateFrom { get; set; }
 
         [Required(ErrorMessage = "Fuel selection is required.")]
         public int FuelId { get; set; }
 
-        // Employee Pesel is typically set by the system based on the logged-in user
-        [Required(ErrorMessage = "Employee identifier is required.")]
+                [Required(ErrorMessage = "Employee identifier is required.")]
         public string EmployeePesel { get; set; }
     }
 }
