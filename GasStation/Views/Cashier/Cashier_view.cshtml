@@ -38,6 +38,7 @@
         <div class="info-right">
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeFuelPriceModal"> Zmień cenę paliwa </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">Dodaj klienta</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Dodaj produkt</button>
         </div>
     </header>
 
@@ -163,8 +164,11 @@
                 const receiptItems = id('receiptItems');
                 const timeDisplay = id('timeDisplay');
                 const addCustomerModal = id('addCustomerModal');
+                const addProductModal = id('addProductModal')
                 const addCustomerForm = id('ajaxAddCustomerForm');
+                const addProductForm = id('ajaxAddProductForm')
                 const customerAlert = id('addCustomerModalAlertPlaceholder');
+                const productAlert = id('addProductModalAlertPlaceholder')
                 const changeFuelModal = id('changeFuelPriceModal');
                 const fuelTypeSelect = id('fuelTypeSelectDropdown');
                 const newPriceInput = id('newPriceInput');
@@ -180,6 +184,7 @@
                     add: id('btnAddToOrder'),
                     randomFuel: id('btnRandomizeRefuelings'),
                     saveCustomer: id('btnSaveCustomerAjax'),
+                    saveProduct: id('btnSaveProductAjax'),
                     savePrice: id('btnSaveFuelPrice'),
                     cash: id('btnCash'),
                     card: id('btnCard'),
@@ -197,6 +202,7 @@
                 initRandomFuel();
                 initProducts();
                 initCustomerModal();
+                initProductModal();
                 initChangeFuelModal();
                 initPayments();
                 initSelect2();
@@ -508,6 +514,30 @@
                 } // Correct closing brace for initCustomerModal
 
 
+                function initProductModal() {
+                    btns.saveProduct && btns.saveProduct.addEventListener('click', () => {
+                        const fd = new FormData(addProductForm);
+                        fetch('/Product/Create', {
+                            method: 'POST',
+                            body: fd,
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(r => r.json()).then(data => {
+                                if (data.success) {
+                                    alertIn(productAlert, data.message || 'Produkt dodany', 'success');
+                                    setTimeout(() => bootstrap.Modal.getInstance(addProductModal).hide(), 2000);
+                                    location.reload(); //TUTAJ RELOAD REFRESH
+                                } else {
+                                    const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
+                                    alertIn(productAlert, msgs.join('<br>'), 'danger');
+                                }
+                            }).catch(() => alertIn(productAlert, 'Błąd połączenia', 'danger'));
+                    });
+                    addProductModal && addProductModal.addEventListener('hidden.bs.modal', () => productAlert.innerHTML = '');
+                    
+                } // Correct closing brace for initCustomerModal
+
+
                 function initChangeFuelModal() {
                     const changeFuelModal = document.getElementById('changeFuelPriceModal');
                     const fuelTypeSelect = document.getElementById('fuelTypeSelect');
@@ -754,4 +784,4 @@
 @Html.Partial("AddCustomerModal")
 @Html.Partial("ChangeFuelPriceModal")
 @Html.Partial("../Order/Create")
-}
+@Html.Partial("AddProductModal")

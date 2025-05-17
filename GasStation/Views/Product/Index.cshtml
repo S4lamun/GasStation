@@ -1,7 +1,7 @@
-﻿@model List<GasStation.DTO.CustomerDTO>
+﻿@model List<GasStation.DTO.ProductDTO>
 
 @{
-    ViewBag.Title = "Lista Klientów";
+    ViewBag.Title = "Lista Produktów";
     Layout = "~/Views/Shared/_Layout.cshtml"; // Upewnij się, że ten plik istnieje
 }
 
@@ -15,12 +15,12 @@
 }
 
 <p>
-    @Html.ActionLink("Dodaj nowego klienta", "Create", null, new { @class = "btn btn-primary" })
+    @Html.ActionLink("Dodaj nowy produkt", "Create", null, new { @class = "btn btn-primary" })
 </p>
 
 @if (!Model.Any())
 {
-    <p>Brak klientów do wyświetlenia.</p>
+    <p>Brak proda.</p>
 }
 else
 {
@@ -28,10 +28,10 @@ else
         <thead>
             <tr>
                 <th>
-                    @Html.DisplayNameFor(model => model.First().Nip)
+                    @Html.DisplayNameFor(model => model.First().Name)
                 </th>
                 <th>
-                    @Html.DisplayNameFor(model => model.First().CompanyName)
+                    @Html.DisplayNameFor(model => model.First().Price)
                 </th>
                 <th>Akcje</th>
             </tr>
@@ -41,12 +41,12 @@ else
             {
                 <tr>
                     <td>
-                        @Html.DisplayFor(modelItem => item.Nip)
+                        @Html.DisplayFor(modelItem => item.Name)
                     </td>
                     <td>
-                        @Html.DisplayFor(modelItem => item.CompanyName)
+                        @Html.DisplayFor(modelItem => item.Price)
                     </td>
-  
+
                 </tr>
             }
         </tbody>
