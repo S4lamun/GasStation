@@ -3,8 +3,9 @@ using System.Web.Mvc;
 using GasStation.Services; // Pamiętaj o dodaniu using do Twoich serwisów
 using GasStation.DTO;
 using System.Web.Security; // Pamiętaj o dodaniu using do Twoich DTOs
-						   // Jeśli masz własne wyjątki biznesowe, dodaj using
-						   // using GasStation.Exceptions; // example
+                           // Jeśli masz własne wyjątki biznesowe, dodaj using
+                           // using GasStation.Exceptions; // example
+using System.Web;
 
 namespace GasStation.Controllers
 {
@@ -38,6 +39,7 @@ namespace GasStation.Controllers
         // Akcja obsługująca wysłanie formularza logowania
         [HttpPost] // Jawnie wskazujemy, że to akcja POST
         [ValidateAntiForgeryToken] // Ochrona przed CSRF
+        [OutputCache(NoStore = true, Duration = 0, VaryByParam = "*")]
         public ActionResult Login(EmployeeLoginDTO loginDto) // Model binder wypełni ten obiekt danymi z formularza
 		{
 			if (ModelState.IsValid)
@@ -80,24 +82,44 @@ namespace GasStation.Controllers
 		}
 
 
-		// --- Inne akcje Home Controllera (jeśli istnieją) ---
-		// public ActionResult About() { ... }
-		// public ActionResult Contact() { ... }
+        // --- Inne akcje Home Controllera (jeśli istnieją) ---
+        // public ActionResult About() { ... }
+        // public ActionResult Contact() { ... }
 
-		// Optional: Akcja błędu, jeśli nie masz jej w Shared
-		// public ActionResult Error()
-		// {
-		//     return View();
-		// }
-		public ActionResult Logout()
-		{
-			Session.Remove("LoggedInEmployee"); // Usuń dane pracownika z sesji
-												// Session.Remove("LoggedInEmployeeFullName"); // Usuń jeśli używasz oddzielnego klucza
-			Session.Clear(); // Opcjonalnie, wyczyść całą sesję
-			Session.Abandon(); // Opcjonalnie, anuluj sesję
+        // Optional: Akcja błędu, jeśli nie masz jej w Shared
+        // public ActionResult Error()
+        // {
+        //     return View();
+        // }
+        public ActionResult Logout()
+        {
+            // Wyloguj użytkownika
+            FormsAuthentication.SignOut();
 
-			// Przekieruj na stronę logowania
-			return RedirectToAction("Index", "Home");
-		}
-	}
+            // Wyczyść sesję
+            Session.Remove("LoggedInEmployee");
+            Session.Clear();
+            Session.Abandon();
+
+            // Unieważnij cache
+            Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
+            Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(-1));
+            Response.Cache.SetNoStore();
+
+            // Wyczyść również cookies autentykacji
+            if (Request.Cookies["ASP.NET_SessionId"] != null)
+            {
+                Response.Cookies["ASP.NET_SessionId"].Value = string.Empty;
+                Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddMonths(-20);
+            }
+
+            if (Request.Cookies["AuthToken"] != null)
+            {
+                Response.Cookies["AuthToken"].Value = string.Empty;
+                Response.Cookies["AuthToken"].Expires = DateTime.Now.AddMonths(-20);
+            }
+
+            return RedirectToAction("Index", "Home");
+        }
+    }
 }

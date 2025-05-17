@@ -8,6 +8,12 @@
     Layout = null; // Dla prostoty na razie bez głównego layoutu
 }
 
+@{
+    Response.Cache.SetCacheability(HttpCacheability.NoCache);
+    Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(-1));
+    Response.Cache.SetNoStore();
+}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -71,3 +77,5 @@
     @* <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> *@
 </body>
 </html>
+
+    

@@ -8,6 +8,7 @@
     ViewBag.Title = "Cashier_view";
     var items = ViewBag.Items as List<GasStation.DTO.RefuelingEntryDTO> ?? new List<GasStation.DTO.RefuelingEntryDTO>();
     var fuelPrices = ViewBag.FuelPrices as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
+    var loggedEmployeePesel = ViewBag.CurrentCashierPesel;
 
 
 
@@ -106,8 +107,7 @@
             </div>
 
             <div class="payment-options">
-                <button class="payment-btn large-btn" id="btnCash">PŁATNOŚĆ</button>
-
+                <button class="payment-btn large-btn" id="btnCash">PŁATNOŚĆ</button>/>
             </div>
         </section>
     </main>
@@ -116,8 +116,11 @@
 
 
         <span class="logout-button">
-            @* Tworzy link, który po kliknięciu wykona akcję Logout w kontrolerze Home *@
-            @Html.ActionLink("Wyloguj", "Logout", "Home", null, new { @class = "btn btn-danger" }) @* Możesz dostosować klasy CSS *@
+            @using (Html.BeginForm("Logout", "Home", FormMethod.Post, new { id = "logoutForm" }))
+            {
+                @Html.AntiForgeryToken()
+                <a href="javascript:document.getElementById('logoutForm').submit()" class="btn btn-danger">Wyloguj</a>
+            } 
         </span>
         <div style="text-align: center; margin: 20px;">
             <button id="btnRandomizeRefuelings" class="action-btn">Losuj Nowe Tankowania</button>
@@ -133,7 +136,7 @@
     <script>
             document.addEventListener('DOMContentLoaded', () => {
         // Przekaż ceny paliw do JavaScript
-        const fuelPrices = @Html.Raw(Json.Encode(fuelPrices));
+                const fuelPrices = @Html.Raw(Json.Encode(fuelPrices));
 
         // Inicjalizacja przycisków z rzeczywistymi cenami
         function initializeFuelButtons() {
@@ -157,7 +160,8 @@
 
         initializeFuelButtons();
     });
-            document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
+            const loggedInEmployeePesel = '@loggedEmployeePesel';
                 let currentTotal = 0;
                 const totalAmount = id('totalAmount');
                 const productSelect = id('productSelect');
@@ -216,10 +220,20 @@
                 function updateTotal() { totalAmount.textContent = fmtPLN(currentTotal); }
                 function alertIn(el, msg, type) { if (el) el.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`; }
 
-                function fetchPrices() {
-                    fetch('/Fuel/GetCurrentPricesJson').then(r => r.ok ? r.json() : Promise.reject())
-                        .then(data => fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {}));
-                }
+            function fetchPrices() {
+                return fetch('/Fuel/GetCurrentPricesJson')
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        fuelPrices = data.reduce((o, { FuelId, Price }) => (o[FuelId] = Price, o), {});
+                        // Automatycznie zaktualizuj przyciski po pobraniu nowych cen
+                        updateFuelButtonsWithNewPrices();
+                        return fuelPrices;
+                    })
+                    .catch(err => {
+                        console.error('Error fetching fuel prices:', err);
+                        throw err;
+                    });
+            }
 
                 function fetchProducts() {
                     fetch('/Product/GetAllProductsJson')
@@ -525,8 +539,8 @@
                             .then(r => r.json()).then(data => {
                                 if (data.success) {
                                     alertIn(productAlert, data.message || 'Produkt dodany', 'success');
+                                    fetchProducts();
                                     setTimeout(() => bootstrap.Modal.getInstance(addProductModal).hide(), 2000);
-                                    location.reload(); //TUTAJ RELOAD REFRESH
                                 } else {
                                     const msgs = Array.isArray(data.errors) ? data.errors.flatMap(e => e.Value) : [data.message];
                                     alertIn(productAlert, msgs.join('<br>'), 'danger');
@@ -534,7 +548,7 @@
                             }).catch(() => alertIn(productAlert, 'Błąd połączenia', 'danger'));
                     });
                     addProductModal && addProductModal.addEventListener('hidden.bs.modal', () => productAlert.innerHTML = '');
-                    
+
                 } // Correct closing brace for initCustomerModal
 
 
@@ -562,7 +576,7 @@
 
                         const fuelId = fuelTypeSelect.value;
                         const newPrice = parseFloat(newPriceInput.value);
-                        const employeePesel = "22334455667"; // Tutaj powinieneś pobrać prawdziwy PESEL pracownika
+                        const employeePesel = loggedInEmployeePesel; // Tutaj powinieneś pobrać prawdziwy PESEL pracownika!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                         if (!fuelId || !newPrice || !employeePesel) {
                             showAlert(priceAlert, 'Wszystkie pola są wymagane', 'danger');
@@ -591,7 +605,9 @@
 
                             if (response.ok) {
                                 showAlert(priceAlert, 'Cena paliwa została zaktualizowana', 'success');
-
+                                await fetchPrices();
+                                updateFuelButtonsWithNewPrices();
+                                updateTotalAfterPriceChange();
                                 // Aktualizacja cen w interfejsie
                                 updateFuelPriceInUI(fuelId, newPrice);
 

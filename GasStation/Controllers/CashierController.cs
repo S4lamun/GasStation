@@ -36,6 +36,15 @@ namespace GasStation.Controllers
 
         public ActionResult Cashier_view()
         {
+            if (Session["LoggedInEmployee"] == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            var employee = Session["LoggedInEmployee"] as EmployeeDTO;
+            ViewBag.CurrentCashierFullName = $"{employee.Name} {employee.Surname}";
+            ViewBag.CurrentCashierPesel = employee.Pesel;
+
             try
             {
                 // Pobierz aktualne ceny paliw przez serwis
